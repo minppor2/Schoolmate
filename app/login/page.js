@@ -1,24 +1,46 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function Login() {
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+const GOOGLE_SCOPE = 'openid email profile https://www.googleapis.com/auth/chat.messages.readonly https://www.googleapis.com/auth/calendar.events';
+
+function LoginContent() {
   const { user, loading, googleLogin } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [token, setToken] = useState('');
 
   useEffect(() => {
+    const callbackToken = searchParams.get('token');
+    if (callbackToken) {
+      localStorage.setItem('google_access_token', callbackToken);
+      setToken(callbackToken);
+      router.push('/inbox');
+      return;
+    }
+
     // 이미 로그인되어 있으면 홈으로 리다이렉트
     if (!loading && user) {
       router.push('/');
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, searchParams]);
 
   const handleGoogleLogin = async () => {
     try {
-      await googleLogin();
-      router.push('/');
+      const redirectUri = `${window.location.origin}/api/auth/callback`;
+      const params = new URLSearchParams({
+        client_id: GOOGLE_CLIENT_ID || '',
+        redirect_uri: redirectUri,
+        response_type: 'code',
+        scope: GOOGLE_SCOPE,
+        access_type: 'offline',
+        prompt: 'consent',
+      });
+
+      window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
     } catch (error) {
       alert('로그인 실패: ' + error.message);
     }
@@ -76,10 +98,25 @@ export default function Login() {
           Google로 로그인
         </button>
 
+        <textarea
+          value={token}
+          onChange={(e) => setToken(e.target.value)}
+          placeholder="Google Chat access token을 붙여넣으세요"
+          style={{ width: '100%', minHeight: '80px', marginTop: '16px', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }}
+        />
+
         <p style={{ marginTop: '20px', fontSize: '12px', color: '#6E6E73' }}>
-          Google 계정으로 안전하게 로그인합니다
+          Google 계정으로 안전하게 로그인하고, 토큰이 있으면 Google Chat 연동 테스트도 가능합니다.
         </p>
       </div>
     </div>
+  );
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={<div style={{ textAlign: 'center', paddingTop: '100px' }}>로딩 중...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
