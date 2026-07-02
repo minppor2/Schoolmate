@@ -9,11 +9,11 @@ import { ddayInfo, resolveStart } from '@/lib/scheduleUtils';
 // 옵시디언 그래프 뷰 스타일 홈: 기능(허브)과 내 데이터(업무·일정·예약)가
 // 노드로 연결된 그래프. 노드를 클릭하면 해당 페이지로 이동한다.
 const HUBS = [
-  { id: 'inbox', label: '업무함', link: '/inbox', color: '#818CF8' },
-  { id: 'schedule', label: '일정', link: '/schedule', color: '#34D399' },
-  { id: 'reservation', label: '특별실', link: '/reservation', color: '#FBBF24' },
-  { id: 'records', label: '학생기록', link: '/records', color: '#F472B6' },
-  { id: 'settings', label: '설정', link: '/settings', color: '#94A3B8' },
+  { id: 'inbox', label: '업무함', link: '/inbox', color: '#0066CC' },
+  { id: 'schedule', label: '일정', link: '/schedule', color: '#34C759' },
+  { id: 'reservation', label: '특별실', link: '/reservation', color: '#FF9500' },
+  { id: 'records', label: '학생기록', link: '/records', color: '#AF52DE' },
+  { id: 'settings', label: '설정', link: '/settings', color: '#8E8E93' },
 ];
 
 const trunc = (s, n = 9) => (s.length > n ? s.slice(0, n) + '…' : s);
@@ -104,7 +104,7 @@ export default function Home() {
   const nodes = [];
   const edges = [];
 
-  nodes.push({ id: 'center', x: CX, y: CY, r: 34, label: '스쿨메이트 AI', color: '#C7D2FE', center: true });
+  nodes.push({ id: 'center', x: CX, y: CY, r: 34, label: '스쿨메이트 AI', color: '#0066CC', center: true });
 
   HUBS.forEach((hub, i) => {
     const angle = (i / HUBS.length) * Math.PI * 2 - Math.PI / 2;
@@ -121,7 +121,7 @@ export default function Home() {
       const ly = y + R2 * Math.sin(childAngle);
       nodes.push({
         id: `${hub.id}_leaf_${j}`, x: lx, y: ly, r: 11,
-        label: leaf.label, sub: leaf.sub, color: leaf.urgent ? '#F87171' : hub.color,
+        label: leaf.label, sub: leaf.sub, color: leaf.urgent ? '#FF3B30' : hub.color,
         link: hub.link, leaf: true,
       });
       edges.push({ from: { x, y }, to: { x: lx, y: ly }, faint: true });
@@ -161,19 +161,20 @@ export default function Home() {
       </div>
 
       {/* ---------- 옵시디언 스타일 그래프 뷰 (접기/펴기 가능) ---------- */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden', background: 'radial-gradient(circle at 30% 20%, #1a2247, #0b0f1e 70%)', border: '1px solid #232a4d' }}>
+      <div className="card" style={{ padding: 0, overflow: 'hidden', background: 'white' }}>
         <button
           onClick={toggleGraph}
           aria-expanded={graphOpen}
           style={{
             width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '12px 18px', background: 'none', border: 'none', cursor: 'pointer', color: '#c9d4f0',
+            padding: '12px 18px', background: 'none', border: 'none', borderBottom: graphOpen ? '1px solid var(--color-divider)' : 'none',
+            cursor: 'pointer', color: 'var(--color-ink)',
           }}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14 }}>
-            <Icon name="graph_3" size={18} /> 내 연결 그래프
+            <Icon name="graph_3" size={18} style={{ color: 'var(--color-primary)' }} /> 내 연결 그래프
           </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, color: '#8b9dc3' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, color: 'var(--color-muted-ink)' }}>
             {graphOpen ? '접기' : '펼치기'}
             <Icon name={graphOpen ? 'expand_less' : 'expand_more'} size={20} />
           </span>
@@ -184,7 +185,7 @@ export default function Home() {
             <line
               key={i}
               x1={e.from.x} y1={e.from.y} x2={e.to.x} y2={e.to.y}
-              stroke="#8b9dc3" strokeWidth={e.faint ? 0.8 : 1.4} strokeOpacity={e.faint ? 0.25 : 0.4}
+              stroke="#9AA3AF" strokeWidth={e.faint ? 0.9 : 1.4} strokeOpacity={e.faint ? 0.35 : 0.5}
             />
           ))}
           {nodes.map(node => {
@@ -199,18 +200,18 @@ export default function Home() {
               >
                 <circle
                   cx={node.x} cy={node.y}
-                  r={isHover ? node.r * 1.25 : node.r}
+                  r={isHover ? node.r * 1.2 : node.r}
                   fill={node.color}
-                  fillOpacity={node.leaf ? 0.85 : 1}
-                  style={{ transition: 'r 0.15s', filter: `drop-shadow(0 0 ${isHover ? 14 : 6}px ${node.color})` }}
+                  fillOpacity={node.leaf ? 0.75 : 0.95}
+                  style={{ transition: 'r 0.15s', filter: isHover ? 'drop-shadow(0 4px 10px rgba(0,0,0,0.25))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.12))' }}
                 />
                 {node.center && (
-                  <circle cx={node.x} cy={node.y} r={node.r + 8} fill="none" stroke="#C7D2FE" strokeOpacity="0.3" strokeWidth="1.5" />
+                  <circle cx={node.x} cy={node.y} r={node.r + 8} fill="none" stroke="#0066CC" strokeOpacity="0.25" strokeWidth="1.5" />
                 )}
                 <text
                   x={node.x} y={node.y + node.r + (node.leaf ? 14 : 18)}
                   textAnchor="middle"
-                  fill={isHover ? '#ffffff' : '#c9d4f0'}
+                  fill={isHover ? 'var(--color-primary)' : 'var(--color-ink)'}
                   fontSize={node.center ? 15 : node.leaf ? 10.5 : 13}
                   fontWeight={node.center ? 800 : node.leaf ? 500 : 700}
                   style={{ userSelect: 'none' }}
@@ -218,7 +219,7 @@ export default function Home() {
                   {node.label}
                 </text>
                 {node.sub && (
-                  <text x={node.x} y={node.y + node.r + 27} textAnchor="middle" fill="#8b9dc3" fontSize="9.5" style={{ userSelect: 'none' }}>
+                  <text x={node.x} y={node.y + node.r + 27} textAnchor="middle" fill="var(--color-muted-ink)" fontSize="9.5" style={{ userSelect: 'none' }}>
                     {node.sub}
                   </text>
                 )}
