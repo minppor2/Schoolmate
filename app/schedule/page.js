@@ -88,7 +88,14 @@ export default function Schedule() {
       setDraft(result);
       if (result.isTask && result.schedule) {
         setNewTitle(result.schedule.title);
-        setNewDate(result.schedule.date);
+        // 날짜 칸에는 날짜만 넣는다 (시간은 startISO에서 별도 표시)
+        if (result.schedule.startISO) {
+          const d = new Date(result.schedule.startISO);
+          const p = (n) => String(n).padStart(2, '0');
+          setNewDate(`${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())}`);
+        } else {
+          setNewDate(result.schedule.date);
+        }
         setNewStartISO(result.schedule.startISO || null);
         setIsModalOpen(true);
       }
