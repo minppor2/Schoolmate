@@ -33,7 +33,7 @@ export default function Footer() {
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
         <button type="button" style={{ ...linkStyle, fontWeight: 600 }} onClick={() => setDoc(DOCS.terms)}>이용약관</button>
         <button type="button" style={{ ...linkStyle, fontWeight: 600 }} onClick={() => setDoc(DOCS.privacy)}>개인정보처리방침</button>
-        <span className="text-fine">정보관리책임자: 창일중학교 (changil.ms08@allip.kr)</span>
+        <span className="text-fine">정보관리책임자: 이x영 (창일중학교) · ☎ 02-994-5934 · 📱 010-9xxx-xxxx</span>
       </div>
       <p className="text-fine" style={{ textAlign: 'center', marginTop: 8 }}>
         © 2026 스쿨메이트 AI. All rights reserved.
