@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 
-// 스쿨메이트 AI 사이트 전용 챗봇 (OpenAI GPT API)
-// OPENAI_API_KEY 환경변수가 필요하다. 모델은 OPENAI_MODEL로 변경 가능 (기본 gpt-4o-mini).
+// 스쿨메이트 AI 사이트 전용 챗봇
+// GEMINI_API_KEY가 있으면 Google Gemini(무료 한도 제공)를 우선 사용하고,
+// 없으면 OPENAI_API_KEY(OpenAI GPT)를 사용한다.
+// 모델 변경: GEMINI_MODEL (기본 gemini-2.5-flash), OPENAI_MODEL (기본 gpt-4o-mini)
 const SYSTEM_PROMPT = `너는 교사 업무 자동화 플랫폼 '스쿨메이트 AI'의 안내 챗봇이야.
 친절하고 간결하게 한국어로 답해. 이 사이트의 기능은 다음과 같아:
 
@@ -18,12 +20,62 @@ const SYSTEM_PROMPT = `너는 교사 업무 자동화 플랫폼 '스쿨메이트
 수업 준비·학급 운영 등 교사 업무 관련 질문에도 도움을 줘.
 모르는 것은 모른다고 답하고, 학생 개인정보는 입력하지 말라고 안내해.`;
 
+async function askGemini(apiKey, messages) {
+  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const contents = messages.map(m => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }],
+  }));
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents,
+        generationConfig: { maxOutputTokens: 700, temperature: 0.7 },
+      }),
+    }
+  );
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw Object.assign(new Error(data?.error?.message || 'Gemini API 호출에 실패했습니다.'), { status: res.status });
+  }
+  return data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
+}
+
+async function askOpenAI(apiKey, messages) {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
+      max_tokens: 700,
+      temperature: 0.7,
+    }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw Object.assign(new Error(data?.error?.message || 'OpenAI API 호출에 실패했습니다.'), { status: res.status });
+  }
+  return data?.choices?.[0]?.message?.content || '';
+}
+
 export async function POST(request) {
   try {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (!geminiKey && !openaiKey) {
       return NextResponse.json(
-        { error: 'OPENAI_API_KEY 환경변수가 설정되지 않았습니다. Vercel(또는 .env.local)에 OpenAI API 키를 등록하세요.' },
+        { error: 'API 키가 설정되지 않았습니다. GEMINI_API_KEY(무료, aistudio.google.com/apikey) 또는 OPENAI_API_KEY를 등록하세요.' },
         { status: 500 }
       );
     }
@@ -40,29 +92,21 @@ export async function POST(request) {
       content: String(m.content || '').slice(0, 2000),
     }));
 
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-        messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...trimmed],
-        max_tokens: 700,
-        temperature: 0.7,
-      }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      const msg = data?.error?.message || 'OpenAI API 호출에 실패했습니다.';
-      return NextResponse.json({ error: msg }, { status: res.status });
+    let reply;
+    if (geminiKey) {
+      try {
+        reply = await askGemini(geminiKey, trimmed);
+      } catch (err) {
+        // Gemini 실패 시 OpenAI 키가 있으면 대체 시도
+        if (!openaiKey) throw err;
+        reply = await askOpenAI(openaiKey, trimmed);
+      }
+    } else {
+      reply = await askOpenAI(openaiKey, trimmed);
     }
 
-    const reply = data?.choices?.[0]?.message?.content || '';
     return NextResponse.json({ reply });
   } catch (err) {
-    return NextResponse.json({ error: err.message || String(err) }, { status: 500 });
+    return NextResponse.json({ error: err.message || String(err) }, { status: err.status || 500 });
   }
 }
