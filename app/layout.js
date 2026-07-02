@@ -4,6 +4,7 @@ import './globals.css';
 import TopBar from '@/components/TopBar';
 import Sidebar from '@/components/Sidebar';
 import Footer from '@/components/Footer';
+import ChatBot from '@/components/ChatBot';
 import { AuthProvider } from '@/lib/AuthContext';
 import { usePathname } from 'next/navigation';
 
@@ -32,6 +33,7 @@ export default function RootLayout({ children }) {
               </main>
             </div>
           )}
+          <ChatBot />
         </AuthProvider>
       </body>
     </html>
