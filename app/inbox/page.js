@@ -39,7 +39,8 @@ export default function Inbox() {
         });
 
         if (!response.ok) {
-          throw new Error('Google Chat API 호출 실패');
+          const errorBody = await response.text();
+          throw new Error(`Google Chat API 호출 실패: ${response.status} ${errorBody}`);
         }
 
         const data = await response.json();

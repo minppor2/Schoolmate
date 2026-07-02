@@ -5,16 +5,33 @@ import { useAuth } from '@/lib/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-const GOOGLE_SCOPE = 'openid email profile https://www.googleapis.com/auth/chat.messages.readonly https://www.googleapis.com/auth/calendar.events';
+const GOOGLE_SCOPE = [
+  'openid',
+  'email',
+  'profile',
+  'https://www.googleapis.com/auth/chat.spaces',
+  'https://www.googleapis.com/auth/chat.spaces.readonly',
+  'https://www.googleapis.com/auth/chat.messages',
+  'https://www.googleapis.com/auth/chat.messages.readonly',
+  'https://www.googleapis.com/auth/calendar.events',
+].join(' ');
 
 function LoginContent() {
-  const { user, loading, googleLogin } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [token, setToken] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [tokenInfo, setTokenInfo] = useState(null);
 
   useEffect(() => {
     const callbackToken = searchParams.get('token');
+    const callbackError = searchParams.get('error');
+
+    if (callbackError) {
+      setErrorMessage(callbackError);
+    }
+
     if (callbackToken) {
       localStorage.setItem('google_access_token', callbackToken);
       setToken(callbackToken);
@@ -22,7 +39,6 @@ function LoginContent() {
       return;
     }
 
-    // 이미 로그인되어 있으면 홈으로 리다이렉트
     if (!loading && user) {
       router.push('/');
     }
@@ -53,6 +69,25 @@ function LoginContent() {
       </div>
     );
   }
+
+  const verifyToken = async () => {
+    if (!token) {
+      return alert('토큰을 먼저 입력하거나 붙여넣으세요.');
+    }
+
+    try {
+      const res = await fetch(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${encodeURIComponent(token)}`);
+      const data = await res.json();
+      setTokenInfo(data);
+      if (!res.ok) {
+        setErrorMessage(data.error_description || data.error || '토큰 검증에 실패했습니다.');
+      } else {
+        setErrorMessage('토큰이 유효합니다. scopes: ' + (data.scope || '없음'));
+      }
+    } catch (err) {
+      setErrorMessage(err.message);
+    }
+  };
 
   return (
     <div style={{
@@ -104,7 +139,70 @@ function LoginContent() {
           placeholder="Google Chat access token을 붙여넣으세요"
           style={{ width: '100%', minHeight: '80px', marginTop: '16px', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }}
         />
-
+        <div style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => {
+              if (!token) return alert('토큰을 입력하거나 붙여넣으세요.');
+              localStorage.setItem('google_access_token', token);
+              router.push('/inbox');
+            }}
+            style={{
+              padding: '10px 14px',
+              backgroundColor: '#0066CC',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+            }}
+          >
+            토큰 저장
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.removeItem('google_access_token');
+              setToken('');
+              setErrorMessage('');
+              setTokenInfo(null);
+              alert('저장된 토큰을 삭제했습니다.');
+            }}
+            style={{
+              padding: '10px 14px',
+              backgroundColor: '#E5E7EB',
+              color: '#111827',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+            }}
+          >
+            토큰 삭제
+          </button>
+          <button
+            type="button"
+            onClick={verifyToken}
+            style={{
+              padding: '10px 14px',
+              backgroundColor: '#10B981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+            }}
+          >
+            토큰 검증
+          </button>
+        </div>
+        {errorMessage ? (
+          <p style={{ marginTop: '12px', fontSize: '13px', color: '#B91C1C' }}>
+            {errorMessage}
+          </p>
+        ) : null}
+        {tokenInfo ? (
+          <pre style={{ marginTop: '10px', fontSize: '12px', color: '#111827', textAlign: 'left', whiteSpace: 'pre-wrap' }}>
+            {JSON.stringify(tokenInfo, null, 2)}
+          </pre>
+        ) : null}
         <p style={{ marginTop: '20px', fontSize: '12px', color: '#6E6E73' }}>
           Google 계정으로 안전하게 로그인하고, 토큰이 있으면 Google Chat 연동 테스트도 가능합니다.
         </p>

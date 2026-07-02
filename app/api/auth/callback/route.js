@@ -28,7 +28,13 @@ export async function GET(request) {
   const data = await response.json();
 
   const redirectUrl = new URL('/login', request.url);
-  redirectUrl.searchParams.set('token', data.access_token || '');
+  if (!response.ok || !data.access_token) {
+    const errorMessage = data.error_description || data.error || 'Google 인증 토큰을 가져오지 못했습니다.';
+    redirectUrl.searchParams.set('error', errorMessage);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  redirectUrl.searchParams.set('token', data.access_token);
   redirectUrl.searchParams.set('state', state || '');
 
   return NextResponse.redirect(redirectUrl);

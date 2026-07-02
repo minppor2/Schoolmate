@@ -16,7 +16,11 @@ export async function GET(request) {
   });
 
   if (!response.ok) {
-    return NextResponse.json({ error: 'Failed to fetch Google Chat data' }, { status: response.status });
+    const errorText = await response.text();
+    return NextResponse.json(
+      { error: 'Failed to fetch Google Chat data', details: errorText },
+      { status: response.status }
+    );
   }
 
   const data = await response.json();
