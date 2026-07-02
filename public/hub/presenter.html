@@ -1,0 +1,2571 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>발표 게임 플랫폼 PRO</title>
+<style>
+:root{
+  --bg1:#0f172a; --bg2:#1e293b; --card:#ffffff14;
+  --accent:#ff8c42; --yellow:#ffb703; --ink:#222;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+  background:linear-gradient(180deg,var(--bg1),var(--bg2));
+  color:white;
+  min-height:100vh;
+  overflow:hidden;
+}
+.topbar{
+  position:fixed;
+  top:14px; right:14px;
+  display:flex; gap:10px; z-index:20;
+}
+button{
+  border:none; border-radius:999px; padding:12px 18px;
+  font-weight:900; cursor:pointer; font-family:inherit;
+}
+.help{background:white;color:#222;}
+.teacher{background:var(--yellow);color:#222;}
+.primary{background:var(--accent);color:white;box-shadow:0 4px 0 #c75c1d;}
+.gray{background:#e5e7eb;color:#222;}
+.screen{
+  min-height:100vh;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:20px;
+}
+h1{font-size:clamp(34px,6vw,58px);margin:0 0 10px;text-align:center;}
+.sub{opacity:.85;margin-bottom:30px;text-align:center;}
+.modes{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:18px; width:min(980px,92vw);
+}
+.card{
+  background:var(--card); border:1px solid #ffffff28; border-radius:28px;
+  padding:28px; cursor:pointer; transition:.25s; text-align:center;
+  backdrop-filter:blur(8px);
+}
+.card:hover{transform:translateY(-6px) scale(1.02);background:#ffffff22;}
+.card .emoji{font-size:58px;}
+.card h2{margin:14px 0 8px;}
+.game{display:none;}
+.monster{
+  width:220px; height:220px; border-radius:50%;
+  background:radial-gradient(circle at 30% 30%,#ff8a8a,#d62828);
+  position:relative; animation:float 2s infinite ease-in-out;
+  box-shadow:0 0 60px rgba(255,70,70,.4);
+}
+.eye{width:34px;height:34px;background:white;border-radius:50%;position:absolute;top:72px;}
+.eye.left{left:54px}.eye.right{right:54px}
+.pupil{width:14px;height:14px;background:black;border-radius:50%;margin:10px;}
+.mouth{position:absolute;bottom:54px;left:50%;transform:translateX(-50%);width:90px;height:40px;border-bottom:6px solid white;border-radius:0 0 60px 60px;}
+.hp{width:min(520px,88vw);margin-top:24px;}
+.bar{height:30px;background:#334155;border-radius:999px;overflow:hidden;}
+.fill{height:100%;width:100%;background:linear-gradient(90deg,#22c55e,#facc15,#ef4444);transition:.4s;}
+.attack{min-height:84px;font-size:clamp(28px,5vw,42px);text-align:center;font-weight:900;margin-top:22px;}
+.final,.modal{
+  position:fixed; inset:0; background:rgba(0,0,0,.75);
+  display:none; align-items:center; justify-content:center; z-index:50;
+}
+.finalcard,.panel{
+  background:white; color:#222; border-radius:28px; padding:28px;
+  width:min(620px,92vw); max-height:90vh; overflow:auto;
+}
+.finalcard{text-align:center;}
+.finalname{font-size:38px;font-weight:900;color:#d62828;}
+.panel h2{margin-top:0;}
+.panel h3{margin:20px 0 8px;border-top:1px dashed #ddd;padding-top:14px;}
+textarea,input,select{
+  width:100%; border:2px solid #e5e7eb; border-radius:12px; padding:10px;
+  font-family:inherit; font-weight:700; margin:5px 0;
+}
+.list{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:260px;overflow:auto;}
+.row{background:#f3f4f6;border-radius:12px;padding:8px;font-weight:700;}
+.small{color:#666;font-size:12px;line-height:1.6;}
+.giftArea{
+  display:flex; flex-wrap:wrap; gap:14px; justify-content:center; margin:20px 0;
+}
+.giftBox{
+  width:110px;height:95px;border-radius:18px;
+  background:linear-gradient(#ffb86b,#ff7a2f);
+  border:4px solid #c95b1c; position:relative; cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:36px; font-weight:900; color:white;
+  box-shadow:0 8px 0 #8d3d13;
+  transition:.15s;
+}
+.giftBox:hover{transform:translateY(-5px) rotate(-2deg);}
+.giftBox::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:18px;background:#ffd39b;
+  border-radius:14px 14px 0 0;border-bottom:3px solid #c95b1c;
+}
+.giftResult{
+  min-height:90px; font-size:clamp(26px,5vw,44px); font-weight:900; text-align:center;
+}
+.badge{
+  display:inline-block;background:#fff3cd;color:#7a5600;border-radius:999px;
+  padding:4px 10px;margin:3px;font-size:12px;font-weight:900;
+}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.shake{animation:shake .2s infinite linear;}
+@keyframes shake{0%{transform:translateX(-3px)}50%{transform:translateX(3px)}100%{transform:translateX(-3px)}}
+@media(max-width:620px){
+  .list{grid-template-columns:1fr;}
+  .topbar{left:10px;right:10px;justify-content:flex-end;}
+  button{padding:10px 13px;font-size:13px;}
+}
+
+.slotChar{
+  width:64px;
+  height:82px;
+  border-radius:18px;
+  background:linear-gradient(180deg,#ffffff,#e8edf4);
+  color:#111827;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:40px;
+  font-weight:900;
+  box-shadow:
+    inset 0 3px 0 rgba(255,255,255,.9),
+    0 8px 18px rgba(0,0,0,.25);
+  position:relative;
+  overflow:hidden;
+}
+.slotChar.active{
+  animation:slotBounce .12s linear infinite alternate;
+}
+.slotChar.fixed{
+  background:linear-gradient(180deg,#fde68a,#f59e0b);
+  color:#7c2d12;
+}
+@keyframes slotBounce{
+  from{transform:translateY(-2px);}
+  to{transform:translateY(2px);}
+}
+
+</style>
+
+<style id="giftEnhance">
+.giftResult{
+  animation:giftGlow 1.2s infinite alternate;
+}
+@keyframes giftGlow{
+  from{text-shadow:0 0 0 rgba(255,255,255,0);}
+  to{text-shadow:0 0 18px rgba(255,255,255,.45);}
+}
+.giftBox{
+  animation:giftFloat 1.8s ease-in-out infinite;
+}
+.giftBox:nth-child(2){animation-delay:.15s;}
+.giftBox:nth-child(3){animation-delay:.3s;}
+.giftBox:nth-child(4){animation-delay:.45s;}
+.giftBox:nth-child(5){animation-delay:.6s;}
+.giftBox:nth-child(6){animation-delay:.75s;}
+
+@keyframes giftFloat{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-8px);}
+}
+</style>
+
+
+<style id="premiumUX">
+:root{
+  --glass:rgba(255,255,255,.08);
+  --line:rgba(255,255,255,.16);
+  --shadow:0 18px 45px rgba(0,0,0,.28);
+}
+
+body{
+  background:
+    radial-gradient(circle at top left, rgba(99,102,241,.20), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(251,191,36,.12), transparent 20%),
+    linear-gradient(180deg,#0b1120,#172554 55%,#1e293b);
+}
+
+.topbar button{
+  backdrop-filter:blur(8px);
+  transition:.18s;
+}
+.topbar button:hover{
+  transform:translateY(-2px);
+}
+
+.card{
+  position:relative;
+  overflow:hidden;
+  border-radius:32px;
+  background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.06));
+  box-shadow:var(--shadow);
+}
+
+.card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.18),transparent 40%);
+  pointer-events:none;
+}
+
+.card .emoji{
+  filter:drop-shadow(0 6px 18px rgba(255,255,255,.18));
+}
+
+.card h2{
+  font-size:28px;
+  margin-top:18px;
+}
+
+.sub{
+  font-size:18px;
+  line-height:1.7;
+}
+
+button{
+  transition:.16s;
+}
+button:hover{
+  transform:translateY(-2px) scale(1.02);
+}
+button:active{
+  transform:translateY(2px);
+}
+
+.panel,.finalcard{
+  border:1px solid rgba(255,255,255,.45);
+  box-shadow:0 30px 70px rgba(0,0,0,.42);
+}
+
+.giftBox{
+  width:130px;
+  height:110px;
+  border-radius:24px;
+}
+
+.giftResult{
+  margin-top:10px;
+  padding:18px;
+  border-radius:24px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.12);
+}
+
+#slotMachine{
+  backdrop-filter:blur(10px);
+}
+
+.slotChar{
+  width:72px;
+  height:92px;
+  font-size:42px;
+  border-radius:22px;
+}
+
+.attack{
+  letter-spacing:-1px;
+}
+
+.badge{
+  padding:7px 12px;
+}
+
+@media(max-width:640px){
+  .card{
+    padding:22px;
+  }
+
+  .card h2{
+    font-size:24px;
+  }
+
+  .giftBox{
+    width:92px;
+    height:82px;
+    font-size:30px;
+  }
+
+  .slotChar{
+    width:56px;
+    height:74px;
+    font-size:34px;
+  }
+
+  .panel,.finalcard{
+    padding:22px;
+    border-radius:24px;
+  }
+}
+</style>
+
+
+<style id="monsterUpgrade">
+.monster{
+  transition:
+    transform .35s,
+    filter .35s,
+    box-shadow .35s,
+    background .35s;
+}
+
+.monster.phase2{
+  transform:scale(1.08);
+  background:radial-gradient(circle at 30% 30%,#ffcf70,#ff6b00);
+  box-shadow:0 0 90px rgba(255,120,0,.65);
+}
+
+.monster.phase3{
+  transform:scale(1.16);
+  background:radial-gradient(circle at 30% 30%,#ff6b6b,#7f1d1d);
+  box-shadow:0 0 120px rgba(255,40,40,.85);
+  filter:saturate(1.25);
+}
+
+.monster.phase4{
+  transform:scale(1.24);
+  background:
+    radial-gradient(circle at 30% 30%,#fff176,#ef4444 60%,#450a0a);
+  box-shadow:
+    0 0 25px rgba(255,255,255,.4),
+    0 0 160px rgba(255,0,0,.95);
+  filter:saturate(1.4);
+}
+
+.monster.phase4 .eye{
+  background:#fffb;
+}
+
+.monster.phase4 .pupil{
+  background:#7f1d1d;
+}
+
+.warningText{
+  animation:warnBlink .45s infinite alternate;
+  color:#ffcc00 !important;
+}
+
+@keyframes warnBlink{
+  from{opacity:.55;transform:scale(1);}
+  to{opacity:1;transform:scale(1.05);}
+}
+
+.screenFlash{
+  animation:screenFlash .35s;
+}
+
+@keyframes screenFlash{
+  0%{background:rgba(255,255,255,.0);}
+  50%{background:rgba(255,255,255,.12);}
+  100%{background:rgba(255,255,255,.0);}
+}
+
+.rageBar{
+  margin-top:12px;
+  font-weight:900;
+  color:#fca5a5;
+  letter-spacing:1px;
+}
+
+.finalExplosion{
+  animation:explode .8s ease-out;
+}
+
+@keyframes explode{
+  0%{transform:scale(1);}
+  40%{transform:scale(1.35) rotate(-4deg);}
+  100%{transform:scale(0);opacity:0;}
+}
+</style>
+
+
+<style id="monsterFaceUpgrade">
+.monster{
+  overflow:visible;
+}
+
+.monster .mouth{
+  transition:.25s;
+}
+
+.monster.phase2 .mouth{
+  width:110px;
+  height:55px;
+  border-bottom:8px solid #fff;
+  border-radius:0 0 80px 80px;
+}
+
+.monster.phase3 .mouth{
+  width:120px;
+  height:20px;
+  border-bottom:none;
+  border-top:8px solid #fff;
+  border-radius:80px 80px 0 0;
+  bottom:68px;
+}
+
+.monster.phase4 .mouth{
+  width:140px;
+  height:70px;
+  background:#2b0000;
+  border-radius:0 0 80px 80px;
+  border:5px solid #fff;
+  bottom:38px;
+}
+
+.monster.phase4::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:-24px;
+  transform:translateX(-50%);
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  background:#ff0000;
+  box-shadow:
+    -90px 30px 0 #ff0000,
+    90px 30px 0 #ff0000;
+  animation:rageFire .45s infinite alternate;
+}
+
+@keyframes rageFire{
+  from{transform:translateX(-50%) scale(.9);}
+  to{transform:translateX(-50%) scale(1.18);}
+}
+
+.monster.dead{
+  animation:monsterFall 1s ease forwards;
+  filter:grayscale(.7);
+}
+
+.monster.dead .mouth{
+  width:110px;
+  height:16px;
+  background:#111;
+  border:none;
+  border-radius:999px;
+  bottom:54px;
+}
+
+.monster.dead .eye{
+  background:#fff;
+}
+
+.monster.dead .eye::before,
+.monster.dead .eye::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:34px;
+  height:5px;
+  background:#111;
+  border-radius:999px;
+  transform-origin:center;
+}
+
+.monster.dead .eye::before{
+  transform:translate(-50%,-50%) rotate(45deg);
+}
+.monster.dead .eye::after{
+  transform:translate(-50%,-50%) rotate(-45deg);
+}
+
+.monster.dead .pupil{
+  display:none;
+}
+
+@keyframes monsterFall{
+  0%{
+    transform:scale(1.2) rotate(0deg);
+    opacity:1;
+  }
+  40%{
+    transform:scale(1.35) rotate(-8deg);
+  }
+  100%{
+    transform:translateY(240px) rotate(90deg) scale(.75);
+    opacity:0;
+  }
+}
+</style>
+
+
+<style id="rpgDashboardStyle">
+:root{
+  --rpg-bg:#071225;
+  --rpg-panel:rgba(12,28,58,.76);
+  --rpg-panel2:rgba(20,42,82,.72);
+  --rpg-line:rgba(124,166,255,.28);
+  --rpg-glow:0 0 24px rgba(68,124,255,.18);
+  --rpg-orange:#ff7a2e;
+  --rpg-blue:#3b82f6;
+  --rpg-red:#ff4d5e;
+  --rpg-yellow:#ffd166;
+}
+body{
+  background:
+    radial-gradient(circle at 50% 25%, rgba(126,34,206,.30), transparent 32%),
+    radial-gradient(circle at 52% 42%, rgba(239,68,68,.18), transparent 28%),
+    linear-gradient(180deg,#061123 0%,#071b3b 45%,#06101f 100%) !important;
+  color:#fff;
+}
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(90deg,rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size:46px 46px;
+  mask-image:linear-gradient(to bottom,rgba(0,0,0,.35),transparent 75%);
+}
+.topbar{
+  left:16px;
+  right:16px;
+  top:14px;
+  justify-content:space-between;
+}
+.topbar::before{
+  content:"🎮 발표 게임 플랫폼 PRO";
+  background:rgba(5,13,30,.76);
+  border:1px solid var(--rpg-line);
+  box-shadow:var(--rpg-glow);
+  padding:13px 18px;
+  border-radius:18px;
+  font-weight:900;
+  letter-spacing:-.4px;
+}
+.topbar button{
+  background:rgba(255,255,255,.08) !important;
+  color:#fff !important;
+  border:1px solid rgba(255,255,255,.22);
+  box-shadow:0 6px 18px rgba(0,0,0,.22);
+}
+.screen{
+  padding-top:94px;
+}
+#home h1{
+  font-size:clamp(36px,5.6vw,64px);
+  text-shadow:0 6px 24px rgba(0,0,0,.5);
+}
+.modes{
+  max-width:1120px;
+}
+.card{
+  background:linear-gradient(180deg,rgba(35,65,125,.70),rgba(8,22,50,.72)) !important;
+  border:1px solid var(--rpg-line) !important;
+  box-shadow:0 18px 44px rgba(0,0,0,.30), inset 0 0 0 1px rgba(255,255,255,.04);
+  border-radius:24px !important;
+}
+.card:hover{
+  box-shadow:0 20px 55px rgba(0,0,0,.40), 0 0 36px rgba(77,139,255,.22);
+}
+#monsterGame{
+  display:none;
+  justify-content:flex-start;
+  gap:12px;
+  padding:92px 18px 18px;
+}
+#monsterGame h1{
+  font-size:clamp(34px,4.7vw,58px);
+  margin-bottom:0;
+  text-shadow:0 8px 24px rgba(0,0,0,.45);
+}
+#monsterGame::before{
+  content:"모두의 발표로 몬스터를 물리치자!";
+  display:block;
+  margin-top:-8px;
+  opacity:.9;
+  font-size:20px;
+  font-weight:800;
+}
+.monster{
+  width:min(310px,46vw) !important;
+  height:min(310px,46vw) !important;
+  margin:6px auto 0;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255,95,95,.80), transparent 42%),
+    radial-gradient(circle at 30% 30%,#7c3aed,#2e1065) !important;
+  border:5px solid rgba(255,255,255,.14);
+  box-shadow:
+    0 0 0 16px rgba(239,68,68,.12),
+    0 0 80px rgba(239,68,68,.35),
+    0 22px 60px rgba(0,0,0,.35) !important;
+}
+.monster::before{
+  content:"";
+  position:absolute;
+  left:-28%;
+  right:-28%;
+  top:6%;
+  height:48%;
+  background:
+    radial-gradient(ellipse at 18% 50%, rgba(120,42,170,.9), transparent 40%),
+    radial-gradient(ellipse at 82% 50%, rgba(120,42,170,.9), transparent 40%);
+  z-index:-1;
+  filter:drop-shadow(0 16px 16px rgba(0,0,0,.35));
+}
+.monster .eye{
+  top:33% !important;
+  box-shadow:0 0 14px rgba(255,255,255,.7);
+}
+.monster .mouth{
+  bottom:23% !important;
+}
+.hp{
+  position:absolute;
+  right:24px;
+  top:172px;
+  width:min(330px,32vw) !important;
+  padding:18px;
+  border-radius:22px;
+  background:var(--rpg-panel);
+  border:1px solid var(--rpg-line);
+  box-shadow:var(--rpg-glow);
+}
+.hp::before{
+  content:"👿 BOSS";
+  display:block;
+  color:#ff7585;
+  font-weight:900;
+  margin-bottom:8px;
+}
+.hp div:first-child{
+  font-size:22px;
+  margin-bottom:10px !important;
+}
+.bar{
+  border:2px solid rgba(255,255,255,.22);
+  height:26px !important;
+}
+.fill{
+  background:linear-gradient(90deg,#ef4444,#f97316,#facc15) !important;
+}
+.rageBar{
+  width:min(760px,90vw);
+  padding:13px 18px;
+  border-radius:16px;
+  background:rgba(5,13,30,.72);
+  border:1px solid rgba(255,255,255,.16);
+  color:#ff8a95 !important;
+  text-align:center;
+  box-shadow:var(--rpg-glow);
+}
+.attack{
+  width:min(800px,92vw);
+  min-height:92px;
+  padding:20px;
+  border-radius:24px;
+  background:linear-gradient(180deg,rgba(23,42,84,.82),rgba(8,19,42,.82));
+  border:1px solid var(--rpg-line);
+  box-shadow:var(--rpg-glow);
+}
+#monsterGame > div[style*="margin-top:22px"]{
+  background:var(--rpg-panel);
+  border:1px solid var(--rpg-line);
+  box-shadow:var(--rpg-glow);
+  border-radius:24px;
+  padding:18px;
+  width:min(860px,92vw);
+}
+.primary{
+  background:linear-gradient(180deg,#ff9b4a,#f97316) !important;
+  color:#fff !important;
+  box-shadow:0 8px 0 #9a3412,0 16px 28px rgba(249,115,22,.22) !important;
+}
+.gray{
+  background:linear-gradient(180deg,#f8fafc,#cbd5e1) !important;
+  color:#1e293b !important;
+}
+.panel,.finalcard{
+  background:linear-gradient(180deg,#ffffff,#eef4ff) !important;
+  border-radius:28px !important;
+}
+.finalcard{
+  box-shadow:0 32px 80px rgba(0,0,0,.45);
+}
+.finalname{
+  color:#ef4444 !important;
+}
+.giftArea{
+  background:var(--rpg-panel);
+  border:1px solid var(--rpg-line);
+  box-shadow:var(--rpg-glow);
+  border-radius:28px;
+  padding:22px;
+  width:min(860px,92vw);
+}
+#slotMachine{
+  background:var(--rpg-panel) !important;
+  border-color:var(--rpg-line) !important;
+  box-shadow:var(--rpg-glow) !important;
+}
+@media(max-width:760px){
+  .topbar{
+    left:8px;
+    right:8px;
+  }
+  .topbar::before{
+    content:"🎮 발표 PRO";
+    padding:10px 12px;
+    font-size:13px;
+  }
+  .topbar button{
+    font-size:12px;
+    padding:9px 10px;
+  }
+  #monsterGame{
+    padding-top:78px;
+  }
+  .hp{
+    position:static;
+    width:min(760px,92vw) !important;
+    order:2;
+  }
+  .monster{
+    width:min(280px,76vw) !important;
+    height:min(280px,76vw) !important;
+  }
+  .rageBar{font-size:14px;}
+}
+</style>
+
+
+<style id="mobileScrollFix">
+html, body{
+  min-height:100%;
+}
+
+body{
+  overflow-x:hidden !important;
+  overflow-y:auto !important;
+}
+
+.screen{
+  min-height:100svh;
+  height:auto !important;
+  overflow:visible !important;
+}
+
+@media(max-width:760px){
+  body{
+    overflow-y:auto !important;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  .screen{
+    justify-content:flex-start !important;
+    padding-bottom:120px !important;
+  }
+
+  #monsterGame{
+    min-height:auto !important;
+    height:auto !important;
+    overflow:visible !important;
+    padding-bottom:140px !important;
+  }
+
+  .game{
+    overflow:visible !important;
+  }
+
+  .attack{
+    min-height:auto !important;
+  }
+
+  #monsterGame > div[style*="margin-top:22px"]{
+    margin-bottom:70px;
+  }
+
+  .modal .panel,
+  .panel{
+    max-height:86vh !important;
+    overflow-y:auto !important;
+  }
+}
+</style>
+
+
+<style id="finalStabilizeUX">
+/* 전체 톤 통일 */
+#giftGame, #slotGame{
+  padding-top:92px;
+  justify-content:flex-start;
+}
+
+#giftGame h1, #slotGame h1{
+  text-shadow:0 8px 24px rgba(0,0,0,.45);
+}
+
+#giftGame .sub, #slotGame .sub{
+  color:#dbeafe;
+  font-weight:800;
+}
+
+.giftArea, #slotMachine{
+  background:linear-gradient(180deg,rgba(18,39,82,.82),rgba(7,18,39,.82)) !important;
+  border:1px solid rgba(124,166,255,.28) !important;
+  box-shadow:0 0 28px rgba(68,124,255,.18),0 16px 42px rgba(0,0,0,.28) !important;
+}
+
+.giftBox{
+  border-radius:22px !important;
+  box-shadow:0 8px 0 #7c2d12,0 18px 28px rgba(0,0,0,.26) !important;
+}
+
+.giftResult{
+  color:#fff;
+  text-shadow:0 6px 18px rgba(0,0,0,.4);
+}
+
+#slotStatus{
+  color:#ffd166 !important;
+}
+
+.panel h3{
+  color:#1e3a8a;
+}
+
+.panel .small,
+.small{
+  line-height:1.65;
+}
+
+/* 학생 명단 입력 안내가 보이는 선생님 메뉴 */
+#teacherModal textarea{
+  font-size:14px;
+  line-height:1.5;
+}
+
+#teacherModal .primary{
+  margin-top:4px;
+}
+
+/* 모바일 구조: 화면이 아래로 자연스럽게 이어지도록 */
+@media(max-width:760px){
+  body{
+    overflow-x:hidden !important;
+    overflow-y:auto !important;
+  }
+
+  .topbar{
+    position:sticky !important;
+    top:0 !important;
+    left:0 !important;
+    right:0 !important;
+    padding:8px;
+    background:rgba(3,7,18,.72);
+    backdrop-filter:blur(10px);
+    z-index:60;
+  }
+
+  .topbar::before{
+    display:none;
+  }
+
+  .screen{
+    padding-top:22px !important;
+    padding-left:12px !important;
+    padding-right:12px !important;
+    min-height:auto !important;
+    justify-content:flex-start !important;
+  }
+
+  #home h1{
+    margin-top:16px;
+    font-size:34px;
+  }
+
+  .modes{
+    grid-template-columns:1fr !important;
+    gap:12px !important;
+  }
+
+  .card{
+    padding:18px !important;
+    display:grid;
+    grid-template-columns:64px 1fr;
+    text-align:left;
+    align-items:center;
+    gap:12px;
+  }
+
+  .card .emoji{
+    font-size:46px !important;
+  }
+
+  .card h2{
+    margin:0 0 4px !important;
+    font-size:22px !important;
+  }
+
+  #monsterGame h1{
+    font-size:31px !important;
+    margin-top:8px;
+  }
+
+  #monsterGame::before{
+    font-size:15px !important;
+    text-align:center;
+  }
+
+  .monster{
+    width:min(230px,72vw) !important;
+    height:min(230px,72vw) !important;
+  }
+
+  .hp{
+    width:100% !important;
+    padding:14px !important;
+  }
+
+  .rageBar{
+    width:100% !important;
+    font-size:13px !important;
+    padding:11px !important;
+  }
+
+  .attack{
+    width:100% !important;
+    padding:16px !important;
+    font-size:26px !important;
+  }
+
+  #monsterGame > div[style*="margin-top:22px"],
+  #giftGame > div[style*="margin-top:22px"],
+  #slotGame > div[style*="margin-top:22px"]{
+    width:100% !important;
+    gap:8px !important;
+  }
+
+  #monsterGame > div[style*="margin-top:22px"] button,
+  #giftGame > div[style*="margin-top:22px"] button,
+  #slotGame > div[style*="margin-top:22px"] button{
+    flex:1 1 42%;
+  }
+
+  .giftArea{
+    width:100% !important;
+    gap:10px !important;
+    padding:16px !important;
+  }
+
+  .giftBox{
+    width:88px !important;
+    height:78px !important;
+  }
+
+  #slotMachine{
+    width:100% !important;
+    padding:16px !important;
+  }
+
+  .slotChar{
+    width:48px !important;
+    height:66px !important;
+    font-size:30px !important;
+  }
+
+  .modal{
+    align-items:flex-start !important;
+    overflow-y:auto !important;
+    padding:18px 10px;
+  }
+
+  .panel{
+    width:100% !important;
+    max-height:none !important;
+    overflow:visible !important;
+    padding:20px !important;
+  }
+}
+</style>
+
+
+<style id="monsterVisualBoost">
+.monster::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:-12%;
+  transform:translateX(-50%);
+  width:26%;
+  height:24%;
+  background:linear-gradient(180deg,#fef3c7,#c2410c);
+  clip-path:polygon(50% 0, 100% 100%, 0 100%);
+  filter:drop-shadow(0 8px 8px rgba(0,0,0,.35));
+}
+
+.monster .eye{
+  transform:skewX(-8deg);
+}
+
+.monster.phase3 .eye,
+.monster.phase4 .eye{
+  transform:skewX(-16deg) scale(1.08);
+}
+
+.monster.phase3::after,
+.monster.phase4::after{
+  animation:hornPulse .4s infinite alternate;
+}
+
+@keyframes hornPulse{
+  from{filter:drop-shadow(0 0 4px rgba(255,160,0,.5));}
+  to{filter:drop-shadow(0 0 16px rgba(255,0,0,.9));}
+}
+</style>
+
+
+
+
+
+<style id="rocketRaceStyle">
+#rocketGame{
+  padding-top:92px;
+  justify-content:flex-start;
+}
+
+.spaceArena{
+  position:relative;
+  width:min(980px,94vw);
+  height:520px;
+  border-radius:32px;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255,255,255,.8) 0 2px, transparent 3px),
+    radial-gradient(circle at 72% 18%, rgba(255,255,255,.6) 0 2px, transparent 3px),
+    radial-gradient(circle at 48% 66%, rgba(255,255,255,.5) 0 2px, transparent 3px),
+    radial-gradient(circle at 84% 72%, rgba(255,255,255,.7) 0 2px, transparent 3px),
+    linear-gradient(180deg,#030712,#071b3b 48%,#0f172a);
+  border:1px solid rgba(124,166,255,.35);
+  box-shadow:
+    0 0 32px rgba(68,124,255,.22),
+    0 22px 60px rgba(0,0,0,.42);
+}
+
+.spaceArena::before,
+.spaceArena::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,.9) 1px, transparent 1.5px);
+  background-size:80px 80px;
+  animation:starMove 2.6s linear infinite;
+  opacity:.45;
+}
+
+.spaceArena::after{
+  background-size:130px 130px;
+  animation-duration:4.5s;
+  opacity:.28;
+}
+
+@keyframes starMove{
+  from{transform:translateX(0);}
+  to{transform:translateX(-130px);}
+}
+
+.planetFinish{
+  position:absolute;
+  right:26px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:86px;
+  z-index:6;
+  filter:drop-shadow(0 0 24px rgba(255,214,102,.75));
+  animation:planetPulse 1.4s ease-in-out infinite alternate;
+}
+
+.finishGlow{
+  position:absolute;
+  right:0;
+  top:0;
+  width:120px;
+  height:100%;
+  background:linear-gradient(90deg,transparent,rgba(250,204,21,.22));
+  z-index:2;
+}
+
+@keyframes planetPulse{
+  from{transform:translateY(-50%) scale(1);}
+  to{transform:translateY(-50%) scale(1.08);}
+}
+
+.flyRocket{
+  position:absolute;
+  left:18px;
+  height:48px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  z-index:5;
+  transition:left .28s ease, top .28s ease, transform .18s ease;
+}
+
+.flyRocket .ship{
+  font-size:36px;
+  filter:drop-shadow(0 5px 10px rgba(0,0,0,.45));
+}
+
+.flyRocket .pilot{
+  color:#fff;
+  font-weight:900;
+  background:rgba(15,23,42,.72);
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:999px;
+  padding:5px 10px;
+  text-shadow:0 2px 4px rgba(0,0,0,.7);
+  max-width:120px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.flyRocket.boost{
+  animation:flyBoost .34s ease;
+}
+
+@keyframes flyBoost{
+  0%{transform:scale(1);}
+  50%{transform:scale(1.25) translateX(14px);}
+  100%{transform:scale(1);}
+}
+
+.trail{
+  position:absolute;
+  right:80%;
+  width:54px;
+  height:10px;
+  border-radius:999px;
+  background:linear-gradient(90deg,transparent,rgba(96,165,250,.9),rgba(255,255,255,.9));
+  filter:blur(.4px);
+  animation:trailFlicker .25s infinite alternate;
+}
+
+@keyframes trailFlicker{
+  from{opacity:.45;width:42px;}
+  to{opacity:.95;width:70px;}
+}
+
+.spaceEffect{
+  position:absolute;
+  z-index:7;
+  font-size:38px;
+  pointer-events:none;
+  animation:effectPop .9s ease forwards;
+}
+
+@keyframes effectPop{
+  0%{transform:scale(.4);opacity:0;}
+  35%{transform:scale(1.25);opacity:1;}
+  100%{transform:translateY(-28px) scale(.8);opacity:0;}
+}
+
+.meteor{
+  position:absolute;
+  right:-60px;
+  font-size:42px;
+  z-index:4;
+  animation:meteorFly 1.6s linear forwards;
+}
+
+@keyframes meteorFly{
+  from{transform:translateX(0) translateY(0) rotate(0);}
+  to{transform:translateX(-1100px) translateY(120px) rotate(-360deg);}
+}
+
+.rocketLog{
+  width:min(980px,94vw);
+  margin-top:16px;
+  padding:18px 20px;
+  border-radius:22px;
+  background:linear-gradient(180deg,rgba(23,42,84,.86),rgba(8,19,42,.86));
+  border:1px solid rgba(124,166,255,.28);
+  box-shadow:0 0 28px rgba(68,124,255,.18);
+  text-align:center;
+  font-size:clamp(22px,4vw,34px);
+  font-weight:900;
+  min-height:76px;
+}
+
+@media(max-width:760px){
+  #rocketGame{
+    padding-top:22px !important;
+  }
+
+  .spaceArena{
+    width:100%;
+    height:560px;
+    border-radius:24px;
+  }
+
+  .planetFinish{
+    right:12px;
+    font-size:62px;
+  }
+
+  .flyRocket .ship{
+    font-size:30px;
+  }
+
+  .flyRocket .pilot{
+    font-size:12px;
+    max-width:86px;
+    padding:4px 8px;
+  }
+
+  .rocketLog{
+    width:100%;
+    font-size:21px;
+    padding:14px;
+  }
+}
+</style>
+
+
+<style id="mobileCardTextFix">
+@media(max-width:760px){
+  .modes{
+    grid-template-columns:1fr !important;
+    width:100% !important;
+  }
+
+  .card{
+    display:grid !important;
+    grid-template-columns:72px 1fr !important;
+    grid-template-rows:auto auto !important;
+    column-gap:16px !important;
+    row-gap:6px !important;
+    align-items:center !important;
+    text-align:left !important;
+    min-height:142px !important;
+    padding:22px !important;
+  }
+
+  .card .emoji{
+    grid-row:1 / span 2 !important;
+    grid-column:1 !important;
+    font-size:52px !important;
+    line-height:1 !important;
+    text-align:center !important;
+  }
+
+  .card h2{
+    grid-column:2 !important;
+    grid-row:1 !important;
+    margin:0 !important;
+    font-size:28px !important;
+    line-height:1.2 !important;
+    white-space:nowrap !important;
+    word-break:keep-all !important;
+  }
+
+  .card div:not(.emoji){
+    grid-column:2 !important;
+    grid-row:2 !important;
+    font-size:16px !important;
+    line-height:1.45 !important;
+    word-break:keep-all !important;
+    overflow-wrap:normal !important;
+    white-space:normal !important;
+  }
+
+  #home{
+    padding-left:16px !important;
+    padding-right:16px !important;
+  }
+}
+
+@media(max-width:390px){
+  .card{
+    grid-template-columns:62px 1fr !important;
+    padding:18px !important;
+  }
+
+  .card .emoji{
+    font-size:46px !important;
+  }
+
+  .card h2{
+    font-size:25px !important;
+  }
+
+  .card div:not(.emoji){
+    font-size:15px !important;
+  }
+}
+</style>
+
+
+<style id="hundredPointPolish">
+/* 100점 배포용 안정화 */
+.teacherTools{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:8px;
+}
+.teacherTools button{
+  border-radius:14px;
+  padding:10px;
+  font-size:13px;
+}
+.modeChip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:7px 10px;
+  border-radius:999px;
+  background:#eef2ff;
+  color:#1e3a8a;
+  font-weight:900;
+  font-size:12px;
+  margin:3px;
+}
+#quietModeBtn.on{
+  background:#dbeafe !important;
+  color:#1d4ed8 !important;
+}
+#studentCountBadge{
+  position:fixed;
+  left:18px;
+  bottom:16px;
+  z-index:25;
+  padding:9px 13px;
+  border-radius:999px;
+  background:rgba(15,23,42,.72);
+  border:1px solid rgba(255,255,255,.18);
+  color:#fff;
+  font-weight:900;
+  font-size:13px;
+  backdrop-filter:blur(8px);
+}
+body.quiet .shake,
+body.quiet .giftBox,
+body.quiet .monster,
+body.quiet .card{
+  animation:none !important;
+}
+body.quiet .spaceArena::before,
+body.quiet .spaceArena::after{
+  animation-duration:9s !important;
+}
+body.quiet .primary{
+  box-shadow:none !important;
+}
+@media(max-width:760px){
+  .teacherTools{
+    grid-template-columns:1fr;
+  }
+  #studentCountBadge{
+    position:static;
+    margin:8px auto 0;
+    width:max-content;
+  }
+}
+</style>
+
+
+<style id="visualUpgradeFinal">
+/* 프리미엄 게임 비주얼 업그레이드 */
+:root{
+  --v-bg:#050816;
+  --v-panel:rgba(10,20,48,.82);
+  --v-panel2:rgba(18,38,82,.78);
+  --v-line:rgba(118,164,255,.28);
+  --v-blue:#60a5fa;
+  --v-purple:#a78bfa;
+  --v-orange:#fb923c;
+  --v-red:#fb7185;
+  --v-gold:#facc15;
+}
+
+body{
+  background:
+    radial-gradient(circle at 50% 16%, rgba(99,102,241,.35), transparent 26%),
+    radial-gradient(circle at 18% 70%, rgba(14,165,233,.18), transparent 22%),
+    radial-gradient(circle at 88% 78%, rgba(251,146,60,.18), transparent 24%),
+    linear-gradient(180deg,#050816 0%,#0b1633 45%,#06101f 100%) !important;
+}
+
+body::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,.45) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 80% 38%, rgba(255,255,255,.35) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 42% 72%, rgba(255,255,255,.28) 0 1px, transparent 1.5px);
+  background-size:120px 120px,180px 180px,150px 150px;
+  opacity:.35;
+  animation:starDrift 9s linear infinite;
+}
+
+@keyframes starDrift{
+  from{transform:translateY(0);}
+  to{transform:translateY(80px);}
+}
+
+.topbar{
+  background:linear-gradient(180deg,rgba(8,15,35,.88),rgba(8,15,35,.58)) !important;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+
+.topbar button{
+  border-radius:16px !important;
+  border:1px solid rgba(255,255,255,.22) !important;
+  background:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.06)) !important;
+  box-shadow:
+    0 8px 20px rgba(0,0,0,.25),
+    inset 0 1px 0 rgba(255,255,255,.22) !important;
+}
+
+#home h1{
+  background:linear-gradient(180deg,#ffffff,#c7d2fe);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  text-shadow:none !important;
+  letter-spacing:-1px;
+}
+
+#home .sub{
+  color:#bfdbfe;
+  font-weight:800;
+}
+
+.card{
+  isolation:isolate;
+  border-radius:30px !important;
+  background:
+    linear-gradient(180deg,rgba(39,70,145,.84),rgba(10,24,58,.86)) !important;
+  box-shadow:
+    0 22px 54px rgba(0,0,0,.34),
+    inset 0 0 0 1px rgba(255,255,255,.06),
+    inset 0 22px 46px rgba(255,255,255,.05) !important;
+}
+
+.card::after{
+  content:"";
+  position:absolute;
+  inset:auto -20% -45% -20%;
+  height:70%;
+  background:radial-gradient(ellipse,rgba(96,165,250,.26),transparent 62%);
+  z-index:-1;
+  transition:.25s;
+}
+
+.card:hover::after{
+  transform:scale(1.12);
+  opacity:1;
+}
+
+.card .emoji{
+  font-size:64px !important;
+  filter:
+    drop-shadow(0 10px 18px rgba(0,0,0,.28))
+    drop-shadow(0 0 16px rgba(255,255,255,.20));
+}
+
+.card h2{
+  color:#fff;
+  text-shadow:0 4px 12px rgba(0,0,0,.35);
+}
+
+.card div:not(.emoji){
+  color:#dbeafe;
+  font-weight:800;
+}
+
+#monsterGame h1,
+#giftGame h1,
+#slotGame h1,
+#rocketGame h1{
+  background:linear-gradient(180deg,#ffffff,#bfdbfe);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  text-shadow:none !important;
+}
+
+.monster{
+  border-radius:38% 38% 45% 45% / 42% 42% 52% 52% !important;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(255,255,255,.28), transparent 18%),
+    radial-gradient(circle at 35% 35%, #8b5cf6 0 18%, transparent 19%),
+    radial-gradient(circle at 68% 36%, #4c1d95 0 20%, transparent 21%),
+    linear-gradient(180deg,#5b21b6,#2e1065 65%,#170a33) !important;
+  box-shadow:
+    0 0 0 18px rgba(239,68,68,.11),
+    0 0 88px rgba(168,85,247,.45),
+    0 26px 68px rgba(0,0,0,.48) !important;
+}
+
+.monster::before{
+  opacity:.98;
+}
+
+.monster::after{
+  background:linear-gradient(180deg,#fff7ed,#fb923c 60%,#7c2d12) !important;
+}
+
+.monster .eye{
+  background:#fff !important;
+  border:3px solid rgba(15,23,42,.35);
+}
+
+.monster .pupil{
+  background:radial-gradient(circle,#fef2f2 0 18%,#ef4444 20% 52%,#450a0a 55%) !important;
+  box-shadow:0 0 12px rgba(239,68,68,.8);
+}
+
+.monster .mouth{
+  border-color:#fff !important;
+  filter:drop-shadow(0 6px 10px rgba(0,0,0,.35));
+}
+
+.monster.phase2{
+  background:
+    radial-gradient(circle at 50% 20%, rgba(255,255,255,.24), transparent 18%),
+    linear-gradient(180deg,#7c3aed,#be123c 65%,#450a0a) !important;
+}
+
+.monster.phase3,
+.monster.phase4{
+  box-shadow:
+    0 0 0 22px rgba(239,68,68,.16),
+    0 0 120px rgba(239,68,68,.70),
+    0 26px 75px rgba(0,0,0,.55) !important;
+}
+
+.hp,.rageBar,.attack,.giftArea,#slotMachine,.spaceArena,.rocketLog{
+  border-radius:28px !important;
+  background:
+    linear-gradient(180deg,rgba(20,44,92,.86),rgba(6,16,38,.88)) !important;
+  border:1px solid rgba(147,197,253,.28) !important;
+  box-shadow:
+    0 20px 52px rgba(0,0,0,.35),
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 0 28px rgba(59,130,246,.18) !important;
+}
+
+.attack{
+  color:#fff;
+  text-shadow:0 5px 18px rgba(0,0,0,.5);
+}
+
+.primary{
+  border-radius:22px !important;
+  background:
+    linear-gradient(180deg,#ffb86b,#fb7a22 56%,#ea580c) !important;
+  box-shadow:
+    0 8px 0 #9a3412,
+    0 18px 34px rgba(249,115,22,.30),
+    inset 0 1px 0 rgba(255,255,255,.35) !important;
+}
+
+.gray{
+  border-radius:22px !important;
+  background:
+    linear-gradient(180deg,#ffffff,#dbeafe) !important;
+  box-shadow:
+    0 8px 0 #94a3b8,
+    0 18px 28px rgba(15,23,42,.22) !important;
+}
+
+.giftBox{
+  background:
+    linear-gradient(180deg,#ffd08a 0 18%,#fb923c 19% 100%) !important;
+  border-color:#9a3412 !important;
+  box-shadow:
+    0 10px 0 #7c2d12,
+    0 24px 36px rgba(0,0,0,.32),
+    inset 0 1px 0 rgba(255,255,255,.45) !important;
+}
+
+.giftBox::after{
+  content:"";
+  position:absolute;
+  width:18px;
+  height:100%;
+  background:rgba(255,255,255,.38);
+  left:50%;
+  top:0;
+  transform:translateX(-50%);
+}
+
+.slotChar{
+  border:1px solid rgba(255,255,255,.35);
+  background:
+    linear-gradient(180deg,#ffffff,#dbeafe 62%,#bfdbfe) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,.7),
+    0 12px 26px rgba(0,0,0,.32) !important;
+}
+
+.slotChar.fixed{
+  background:
+    linear-gradient(180deg,#fde68a,#f59e0b 70%,#d97706) !important;
+  color:#7c2d12 !important;
+  box-shadow:
+    0 0 28px rgba(250,204,21,.45),
+    0 12px 26px rgba(0,0,0,.32) !important;
+}
+
+.flyRocket .ship{
+  font-size:42px !important;
+  filter:
+    drop-shadow(0 8px 12px rgba(0,0,0,.52))
+    drop-shadow(0 0 16px rgba(96,165,250,.45)) !important;
+}
+
+.flyRocket .pilot{
+  background:linear-gradient(180deg,rgba(15,23,42,.88),rgba(30,58,138,.82)) !important;
+  border:1px solid rgba(147,197,253,.38) !important;
+}
+
+.panel,.finalcard{
+  background:
+    linear-gradient(180deg,#ffffff,#eef4ff 72%,#dbeafe) !important;
+  box-shadow:
+    0 34px 90px rgba(0,0,0,.50),
+    inset 0 1px 0 rgba(255,255,255,.9) !important;
+}
+
+.finalcard h1{
+  color:#0f172a;
+}
+
+.finalname{
+  background:linear-gradient(180deg,#ef4444,#7f1d1d);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent !important;
+}
+
+#studentCountBadge{
+  background:linear-gradient(180deg,rgba(30,58,138,.82),rgba(15,23,42,.82)) !important;
+  border:1px solid rgba(147,197,253,.32) !important;
+  box-shadow:0 10px 28px rgba(0,0,0,.28);
+}
+
+@media(max-width:760px){
+  .card{
+    min-height:132px !important;
+    border-radius:24px !important;
+  }
+  .card .emoji{
+    font-size:50px !important;
+  }
+  .monster{
+    border-radius:40% 40% 48% 48% / 42% 42% 54% 54% !important;
+  }
+  .flyRocket .ship{
+    font-size:32px !important;
+  }
+}
+</style>
+
+</head>
+<body>
+
+<div class="topbar">
+  <button class="help" onclick="openHelp()">❓ 사용법</button>
+  <button class="teacher" onclick="openTeacher()">⚙️ 선생님 메뉴</button>
+</div>
+
+<div class="screen" id="home">
+  <h1>🎮 발표 게임 선택</h1>
+  <div class="sub">게임처럼 즐기며 자연스럽게 참여하는 발표 활동 플랫폼</div>
+  
+<div class="modes">
+    <div class="card" onclick="startMode('monster')">
+      <div class="emoji">👾</div><h2>발표 몬스터</h2><div>마지막 공격 학생이 발표!</div>
+    </div>
+    <div class="card" onclick="startMode('gift')">
+      <div class="emoji">🎁</div><h2>선물상자</h2><div>랜덤 선물 뽑기 이벤트</div>
+    </div>
+    <div class="card" onclick="startMode('slot')">
+      <div class="emoji">🎰</div><h2>슬롯머신</h2><div>빠른 발표자 뽑기</div>
+    </div>
+    <div class="card" onclick="startMode('rocket')">
+      <div class="emoji">🚀</div><h2>우주 레이스</h2><div>부스터와 역전이 있는 발표자 레이스</div>
+    </div>
+  </div>
+</div>
+
+<div class="screen game" id="monsterGame">
+  <h1>⚔️ 발표 몬스터 공격!</h1>
+  <div class="monster" id="monster">
+    <div class="eye left"><div class="pupil"></div></div>
+    <div class="eye right"><div class="pupil"></div></div>
+    <div class="mouth"></div>
+  </div>
+  <div class="hp"><div style="margin-bottom:8px;font-weight:700">MONSTER HP</div><div class="bar"><div class="fill" id="fill"></div></div></div>
+  <div class="rageBar" id="rageBar">😈 몬스터가 조용히 지켜보고 있습니다...</div>
+  <div class="attack" id="attackText">⚔️ 공격 준비!</div>
+  <div style="margin-top:22px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+    <button class="primary" onclick="battle()">⚔️ 공격 시작!</button>
+    <button class="gray" onclick="resetBattle()">🔄 다시 도전</button>
+    <button class="gray" onclick="goHome()">🏠 게임 홈</button>
+  </div>
+</div>
+
+<div class="screen game" id="giftGame">
+  <h1>🎁 선물상자 모드</h1>
+  <div class="sub">두근두근! 어떤 선물이 나올까요?</div>
+  <div class="giftArea" id="giftBoxes"></div>
+  <div class="giftResult" id="giftResult">🎁 선물을 골라보세요!</div>
+  <div style="margin-top:22px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+    <button class="primary" onclick="buildGiftBoxes()">🎁 새 상자</button>
+    <button class="gray" onclick="goHome()">🏠 게임 홈</button>
+  </div>
+</div>
+
+
+<div class="screen game" id="slotGame">
+  <h1>🎰 슬롯머신 모드</h1>
+  <div class="sub">이름이 한 글자씩 맞춰질수록 긴장감이 올라갑니다!</div>
+
+  <div id="slotMachine" style="
+    background:rgba(255,255,255,.08);
+    border:3px solid rgba(255,255,255,.2);
+    border-radius:30px;
+    padding:24px;
+    width:min(760px,92vw);
+    box-shadow:0 14px 40px rgba(0,0,0,.28);
+  ">
+    <div style="
+      display:flex;
+      justify-content:center;
+      gap:10px;
+      flex-wrap:wrap;
+      min-height:110px;
+      align-items:center;
+    " id="slotLetters"></div>
+
+    <div id="slotStatus" style="
+      text-align:center;
+      margin-top:18px;
+      font-size:22px;
+      font-weight:900;
+      color:#facc15;
+      min-height:36px;
+    ">READY</div>
+  </div>
+
+  <div style="margin-top:22px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+    <button class="primary" onclick="spinSlot()">🎰 돌리기</button>
+    <button class="gray" onclick="goHome()">🏠 게임 홈</button>
+  </div>
+</div>
+
+
+
+
+<div class="screen game" id="rocketGame">
+  <h1>🚀 우주선 발표 레이스</h1>
+  <div class="sub">우주선을 타고 결승 행성까지 날아가요! 가장 먼저 도착한 파일럿이 발표자!</div>
+
+  <div class="spaceArena" id="spaceArena">
+    <div class="planetFinish">🪐</div>
+    <div class="finishGlow"></div>
+    <div id="flyingRockets"></div>
+    <div id="spaceEvents"></div>
+  </div>
+
+  <div class="rocketLog" id="rocketLog">🌌 파일럿 대기 중...</div>
+
+  <div style="margin-top:22px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+    <button class="primary" onclick="startRocketRace()">🚀 우주 레이스 시작!</button>
+    <button class="gray" onclick="resetRocketRace()">🔄 다시 도전</button>
+    <button class="gray" onclick="goHome()">🏠 게임 홈</button>
+  </div>
+</div>
+
+
+<div class="final" id="final">
+  <div class="finalcard">
+    <h1>🏆 오늘의 발표 용사</h1>
+    <div class="finalname" id="winner"></div>
+    <p id="finalSub">몬스터에게 마지막 일격을 가했습니다!</p>
+    <button class="primary" onclick="closeFinal()">확인</button>
+  </div>
+</div>
+
+<div class="modal" id="helpModal">
+  <div class="panel">
+    <h2>❓ 사용법</h2>
+    <p>
+      <b>1. ⚙️ 선생님 메뉴에서 학생 명단을 먼저 입력하세요.</b><br>
+      한 줄에 한 명씩 입력하면 됩니다. 번호만 써도 되고 이름을 써도 됩니다.<br><br>
+      <b>2. 게임 모드를 선택하세요.</b><br>
+      👾 발표 몬스터 / 🎁 선물상자 / 🎰 슬롯머신 중 선택합니다.<br><br>
+      <b>3. 선생님 메뉴에서 운영 기능을 조정하세요.</b><br>
+      발표 제외, 참여 균형 도움, 발표 기록 초기화, 선물 목록 입력이 가능합니다.
+    </p>
+    <button class="primary" onclick="closeHelp()">닫기</button>
+  </div>
+</div>
+
+<div class="modal" id="teacherModal">
+  <div class="panel">
+    <h2>⚙️ 선생님 메뉴</h2>
+
+    <h3>👥 반 학생 데이터 입력</h3>
+    <div class="small">한 줄에 한 명씩 입력하세요. 예: 1번 김민준 / 김민준 / 1조</div>
+    <textarea id="studentArea" rows="7"></textarea>
+    <button class="primary" onclick="applyStudents()">학생 명단 적용</button>
+
+    <h3>🎁 선물상자 보상 입력</h3>
+    <div class="small">한 줄에 하나씩 입력하세요. 예: 초콜릿, 칭찬도장, 사탕, 발표 면제권</div>
+    <textarea id="rewardArea" rows="5"></textarea>
+    <button class="primary" onclick="applyRewards()">선물 목록 적용</button>
+
+    <h3>📈 참여 균형 도움</h3>
+    <div class="small">체크한 학생은 자연스럽게 뽑힐 확률이 높아집니다. 학생에게는 표시되지 않습니다.</div>
+    <div class="list" id="priorityList"></div>
+
+    <h3>😴 오늘 발표 제외</h3>
+    <div class="small">컨디션이 좋지 않거나 이미 발표한 학생을 제외할 수 있습니다.</div>
+    <div class="list" id="excludeList"></div>
+
+    <h3>🏆 발표 기록</h3>
+    <div id="records"></div>
+    <button class="gray" onclick="resetRecords()">발표 기록 초기화</button>
+
+    
+    <h3>💾 배포용 관리 기능</h3>
+    <div class="small">
+      같은 컴퓨터에서는 자동 저장됩니다. 다른 컴퓨터에서 쓰려면 설정 파일을 저장한 뒤 가져오면 됩니다.
+    </div>
+    <div class="teacherTools">
+      <button class="gray" onclick="exportAppSettings()">우리 반 설정 파일 저장</button>
+      <button class="gray" onclick="document.getElementById('importSettingsFile').click()">저장한 설정 가져오기</button>
+      <button class="gray" onclick="downloadRecordsCSV()">발표 기록 저장</button>
+      <button class="gray" id="quietModeBtn" onclick="toggleQuietMode()">차분 모드 OFF</button>
+      <button class="gray" onclick="clearTodayExcluded()">오늘 제외 모두 해제</button>
+      <button class="gray" onclick="resetAllAppData()">전체 초기화</button>
+    </div>
+    <input type="file" id="importSettingsFile" accept=".json" style="display:none" onchange="importAppSettings(event)">
+
+
+    <div style="margin-top:20px">
+      <button class="primary" onclick="closeTeacher()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let students = [
+"1번 김민준","2번 이서연","3번 박준호","4번 최지우","5번 정하람",
+"6번 오유진","7번 한도윤","8번 강서윤","9번 윤시우","10번 임가온",
+"11번 조민성","12번 송지안"
+];
+let rewards = ["초콜릿","칭찬도장","사탕","칭찬 스티커","박수 3번","발표왕 배지"];
+let priority = [];
+let excluded = [];
+let records = {};
+let running = false;
+
+function save(){
+  localStorage.setItem('presentGamePro', JSON.stringify({students,rewards,priority,excluded,records}));
+}
+function load(){
+  try{
+    const d = JSON.parse(localStorage.getItem('presentGamePro')||'null');
+    if(d){
+      students = d.students || students;
+      rewards = d.rewards || rewards;
+      priority = d.priority || [];
+      excluded = d.excluded || [];
+      records = d.records || {};
+    }
+  }catch(e){}
+  syncRecords();
+}
+function syncRecords(){
+  students.forEach(s=>{ if(records[s] == null) records[s]=0; });
+  Object.keys(records).forEach(k=>{ if(!students.includes(k)) delete records[k]; });
+}
+function activeStudents(){
+  return students.filter(s=>!excluded.includes(s));
+}
+function weightedPool(){
+  let base = activeStudents();
+  if(base.length===0) return students.slice();
+  let pool = base.slice();
+  priority.forEach(p=>{ if(base.includes(p)) pool.push(p,p,p); });
+  base.forEach(s=>{ if((records[s]||0)===0) pool.push(s); });
+  return pool;
+}
+function pickStudent(){
+  const pool = weightedPool();
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function pickReward(){
+  if(!rewards.length) return "칭찬";
+  return rewards[Math.floor(Math.random()*rewards.length)];
+}
+function renderTeacher(){
+  document.getElementById('studentArea').value = students.join("\\n");
+  document.getElementById('rewardArea').value = rewards.join("\\n");
+
+  const p = document.getElementById('priorityList');
+  p.innerHTML='';
+  students.forEach(s=>{
+    p.innerHTML += `<label class="row"><input type="checkbox" ${priority.includes(s)?'checked':''} onchange="togglePriority('${escapeQuote(s)}')"> ${s}</label>`;
+  });
+
+  const ex = document.getElementById('excludeList');
+  ex.innerHTML='';
+  students.forEach(s=>{
+    ex.innerHTML += `<label class="row"><input type="checkbox" ${excluded.includes(s)?'checked':''} onchange="toggleExclude('${escapeQuote(s)}')"> ${s}</label>`;
+  });
+
+  const rec = document.getElementById('records');
+  rec.innerHTML = '';
+  students.forEach(s=>{
+    rec.innerHTML += `<span class="badge">${s} : ${records[s]||0}회</span>`;
+  });
+}
+function escapeQuote(s){
+  return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+function togglePriority(name){
+  priority = priority.includes(name) ? priority.filter(v=>v!==name) : [...priority,name];
+  save(); renderTeacher();
+}
+function toggleExclude(name){
+  excluded = excluded.includes(name) ? excluded.filter(v=>v!==name) : [...excluded,name];
+  save(); renderTeacher();
+}
+function applyStudents(){
+  const arr = document.getElementById('studentArea').value.split(/\\n+/).map(s=>s.trim()).filter(Boolean);
+  if(arr.length<1){ alert('학생을 1명 이상 입력해 주세요.'); return; }
+  students = arr;
+  priority = priority.filter(s=>students.includes(s));
+  excluded = excluded.filter(s=>students.includes(s));
+  syncRecords();
+  save(); renderTeacher(); buildGiftBoxes();
+  alert('학생 명단이 적용되었습니다.');
+}
+function applyRewards(){
+  rewards = document.getElementById('rewardArea').value.split(/\\n+/).map(s=>s.trim()).filter(Boolean);
+  if(rewards.length<1) rewards=["칭찬"];
+  save(); renderTeacher();
+  alert('선물 목록이 적용되었습니다.');
+}
+function resetRecords(){
+  students.forEach(s=>records[s]=0);
+  save(); renderTeacher();
+}
+function openTeacher(){ renderTeacher(); document.getElementById('teacherModal').style.display='flex'; }
+function closeTeacher(){ save(); document.getElementById('teacherModal').style.display='none'; }
+function openHelp(){ document.getElementById('helpModal').style.display='flex'; }
+function closeHelp(){ document.getElementById('helpModal').style.display='none'; }
+function hideGames(){
+  document.getElementById('home').style.display='none';
+  ['monsterGame','giftGame','slotGame','rocketGame'].forEach(id=>document.getElementById(id).style.display='none');
+}
+function startMode(mode){
+  hideGames();
+  if(mode==='monster') document.getElementById('monsterGame').style.display='flex';
+  if(mode==='gift'){ document.getElementById('giftGame').style.display='flex'; buildGiftBoxes(); }
+  if(mode==='slot') document.getElementById('slotGame').style.display='flex';
+  if(mode==='rocket'){ document.getElementById('rocketGame').style.display='flex'; buildRocketTracks(); }
+}
+function goHome(){
+  document.getElementById('home').style.display='flex';
+  ['monsterGame','giftGame','slotGame','rocketGame'].forEach(id=>document.getElementById(id).style.display='none');
+}
+
+function battle(){
+  if(running) return;
+  running=true;
+
+  let hp=100, last="";
+  const monster = document.getElementById('monster');
+  const attack = document.getElementById('attackText');
+  const rageBar = document.getElementById('rageBar');
+
+  document.getElementById('final').style.display='none';
+  document.getElementById('fill').style.width='100%';
+
+  monster.classList.remove('phase2','phase3','phase4','shake','finalExplosion');
+
+  const interval=setInterval(()=>{
+    const s=pickStudent();
+    last=s;
+
+    let dmg=Math.floor(Math.random()*15)+6;
+    let critical = false;
+
+    if(Math.random()<0.22){
+      dmg+=18;
+      critical = true;
+    }
+
+    if(Math.random()<0.12){
+      attack.innerHTML=`🛡 몬스터가 ${s}의 공격을 막았다!`;
+      dmg = Math.floor(dmg*0.35);
+    }else if(critical){
+      attack.innerHTML=`💥 ${s} 크리티컬 공격!!<br>-${dmg} HP`;
+      document.body.classList.add('screenFlash');
+      setTimeout(()=>document.body.classList.remove('screenFlash'),300);
+    }else{
+      attack.innerHTML=`⚔️ ${s} 공격!<br>-${dmg} HP`;
+    }
+
+    hp-=dmg;
+    if(hp<0) hp=0;
+
+    document.getElementById('fill').style.width=hp+"%";
+
+    // Phase changes
+    if(hp<=70 && hp>45){
+      monster.classList.add('phase2');
+      rageBar.innerHTML='🔥 몬스터가 분노하기 시작합니다...';
+    }
+
+    if(hp<=45 && hp>18){
+      monster.classList.remove('phase2');
+      monster.classList.add('phase3','shake');
+      rageBar.innerHTML='⚠️ 몬스터가 폭주하고 있습니다!';
+      rageBar.classList.add('warningText');
+    }
+
+    if(hp<=18){
+      monster.classList.remove('phase3');
+      monster.classList.add('phase4','shake');
+      rageBar.innerHTML='☠️ FINAL PHASE - 몬스터가 마지막 힘을 모읍니다!';
+      rageBar.classList.add('warningText');
+    }
+
+    if(hp<=0){
+      clearInterval(interval);
+
+      attack.innerHTML='💀 FINAL ATTACK!';
+      rageBar.innerHTML='☠️ 몬스터가 쓰러지고 있습니다...';
+
+      monster.classList.remove('phase2','phase3','phase4');
+      monster.classList.add('dead');
+
+      records[last]=(records[last]||0)+1;
+      save();
+
+      setTimeout(()=>{
+        rageBar.innerHTML='🏆 몬스터 격파 성공!';
+      },700);
+
+      setTimeout(()=>{
+        showFinal(last,'몬스터를 쓰러뜨린 마지막 공격자입니다!');
+        running=false;
+        monster.classList.remove('dead','shake');
+      },1500);
+    }
+  },820);
+}
+
+function resetBattle(){
+  running=false;
+  document.getElementById('fill').style.width='100%';
+  document.getElementById('attackText').innerHTML='⚔️ 공격 준비!';
+  document.getElementById('monster').classList.remove('shake');
+}
+function buildGiftBoxes(){
+  const area=document.getElementById('giftBoxes');
+  area.innerHTML='';
+  document.getElementById('giftResult').textContent='🎁 선물을 골라보세요!';
+  for(let i=0;i<6;i++){
+    const b=document.createElement('div');
+    b.className='giftBox';
+    b.textContent='?';
+    b.onclick=()=>openGift(i,b);
+    area.appendChild(b);
+  }
+}
+
+function openGift(i,box){
+  const reward = pickReward();
+
+  box.textContent='🎉';
+  box.style.transform='scale(1.08) rotate(-3deg)';
+
+  document.getElementById('giftResult').innerHTML =
+    '✨ <span style="color:#ffb703">' + reward + '</span> 획득!';
+
+  setTimeout(()=>{
+    box.style.transform='';
+  },500);
+}
+
+
+
+function spinSlot(){
+  const target = pickStudent();
+
+  let pureName = target.replace(/^\d+\s*번\s*/,'').trim();
+  const chars = pureName.split('');
+
+  const wrap = document.getElementById('slotLetters');
+  const status = document.getElementById('slotStatus');
+
+  records[target]=(records[target]||0)+1;
+  save();
+
+  wrap.innerHTML = '';
+  status.textContent = '🎰 이름 조합 중...';
+
+  let charPool = [];
+
+  students.forEach(st=>{
+    const nm = st.replace(/^\d+\s*번\s*/,'').trim();
+    nm.split('').forEach(ch=>{
+      if(ch && ch !== ' ') charPool.push(ch);
+    });
+  });
+
+  charPool = [...new Set(charPool)];
+
+  chars.forEach(()=>{
+    const div = document.createElement('div');
+    div.className = 'slotChar active';
+    div.textContent = '?';
+    wrap.appendChild(div);
+  });
+
+  const boxes = [...document.querySelectorAll('.slotChar')];
+
+  function animateChar(index){
+    let count = 0;
+
+    const timer = setInterval(()=>{
+      boxes[index].textContent =
+        charPool[Math.floor(Math.random()*charPool.length)];
+
+      count++;
+
+      if(count > 24 + index * 7){
+        clearInterval(timer);
+
+        boxes[index].textContent = chars[index];
+        boxes[index].classList.remove('active');
+        boxes[index].classList.add('fixed');
+
+        if(index < chars.length - 1){
+          status.textContent = '⚡ 이름 조합 중...';
+          setTimeout(()=>animateChar(index + 1), 240);
+        }else{
+          status.textContent = '🏆 발표자 결정!';
+          setTimeout(()=>{
+            showFinal(target,'슬롯머신이 선택한 발표자입니다!');
+          },700);
+        }
+      }
+    },65);
+  }
+
+  animateChar(0);
+}
+
+
+function showFinal(name,sub){
+  document.getElementById('winner').textContent=name;
+  document.getElementById('finalSub').textContent=sub;
+  document.getElementById('final').style.display='flex';
+}
+function closeFinal(){ document.getElementById('final').style.display='none'; }
+
+
+let rocketRunning = false;
+let rocketState = [];
+let rocketTimer = null;
+
+function rocketCandidates(){
+  const base = activeStudents();
+  const pool = base.length ? base : students.slice();
+  return pool.slice().sort(()=>Math.random()-0.5).slice(0, Math.min(7, pool.length));
+}
+
+function buildRocketTracks(){
+  const wrap = document.getElementById('flyingRockets');
+  if(!wrap) return;
+
+  wrap.innerHTML = '';
+  const events = document.getElementById('spaceEvents');
+  if(events) events.innerHTML = '';
+
+  document.getElementById('rocketLog').textContent = '🌌 파일럿 대기 중...';
+
+  const racers = rocketCandidates();
+  const arena = document.getElementById('spaceArena');
+  const h = arena ? arena.clientHeight : 500;
+  const gap = h / (racers.length + 1);
+
+  rocketState = racers.map((name,idx)=>({
+    name,
+    progress:0,
+    speed:Math.random()*2.5+4.8,
+    y:Math.round(gap*(idx+1)-24),
+    wobble:Math.random()*20
+  }));
+
+  rocketState.forEach((r,idx)=>{
+    const row = document.createElement('div');
+    row.className='flyRocket';
+    row.id='flyRocket'+idx;
+    row.style.top=r.y+'px';
+    row.style.left='18px';
+    row.innerHTML = `
+      <div class="trail"></div>
+      <div class="ship">🚀</div>
+      <div class="pilot">${r.name}</div>
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+function updateFlyingRockets(){
+  const arena = document.getElementById('spaceArena');
+  if(!arena) return;
+
+  const maxX = arena.clientWidth - 130;
+
+  rocketState.forEach((r,idx)=>{
+    const el = document.getElementById('flyRocket'+idx);
+    if(!el) return;
+    const x = Math.min(maxX, (r.progress/100)*maxX + 18);
+    const y = r.y + Math.sin(Date.now()/300 + idx) * 8;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+  });
+}
+
+function spacePop(text, idx){
+  const arena = document.getElementById('spaceArena');
+  const layer = document.getElementById('spaceEvents');
+  if(!arena || !layer) return;
+
+  const r = rocketState[idx];
+  const maxX = arena.clientWidth - 130;
+  const x = Math.min(maxX, (r.progress/100)*maxX + 60);
+  const y = r.y - 16;
+
+  const e = document.createElement('div');
+  e.className='spaceEffect';
+  e.style.left=x+'px';
+  e.style.top=y+'px';
+  e.textContent=text;
+  layer.appendChild(e);
+  setTimeout(()=>e.remove(),900);
+}
+
+function spawnMeteor(){
+  const arena = document.getElementById('spaceArena');
+  const layer = document.getElementById('spaceEvents');
+  if(!arena || !layer) return;
+
+  const m = document.createElement('div');
+  m.className='meteor';
+  m.textContent='☄️';
+  m.style.top = Math.random()*(arena.clientHeight-80)+20+'px';
+  layer.appendChild(m);
+  setTimeout(()=>m.remove(),1700);
+}
+
+function startRocketRace(){
+  if(rocketRunning) return;
+  if(!rocketState.length) buildRocketTracks();
+
+  rocketRunning = true;
+  document.getElementById('rocketLog').textContent = '🚀 3... 2... 1... 출발!';
+
+  rocketTimer = setInterval(()=>{
+    let winner = null;
+
+    if(Math.random()<0.18) spawnMeteor();
+
+    rocketState.forEach((r,idx)=>{
+      let move = r.speed + Math.random()*5.5;
+      const event = Math.random();
+
+      if(event < 0.10){
+        move += 18;
+        document.getElementById('rocketLog').textContent = '⚡ ' + r.name + ' 부스터 발동!';
+        const el = document.getElementById('flyRocket'+idx);
+        if(el){
+          el.classList.add('boost');
+          setTimeout(()=>el.classList.remove('boost'),360);
+        }
+        spacePop('⚡', idx);
+      }else if(event < 0.17){
+        move -= 8;
+        document.getElementById('rocketLog').textContent = '☄️ ' + r.name + ' 운석을 피하느라 감속!';
+        spacePop('☄️', idx);
+      }else if(event < 0.21){
+        move += 13;
+        document.getElementById('rocketLog').textContent = '🛸 ' + r.name + ' 워프 성공!';
+        spacePop('🛸', idx);
+      }else if(r.progress>78 && Math.random()<0.08){
+        move += 22;
+        document.getElementById('rocketLog').textContent = '🔥 FINAL BOOST! ' + r.name + ' 마지막 질주!';
+        spacePop('🔥', idx);
+      }
+
+      r.progress += Math.max(1, move);
+
+      if(r.progress >= 100 && !winner){
+        winner = r.name;
+      }
+    });
+
+    updateFlyingRockets();
+
+    if(winner){
+      clearInterval(rocketTimer);
+      rocketTimer=null;
+      rocketRunning=false;
+      records[winner]=(records[winner]||0)+1;
+      save();
+      document.getElementById('rocketLog').textContent = '🏁 결승 행성 도착! ' + winner;
+      setTimeout(()=>showFinal(winner,'우주 레이스에서 가장 먼저 도착한 발표자입니다!'),900);
+    }
+  },420);
+}
+
+function resetRocketRace(){
+  rocketRunning=false;
+  if(rocketTimer){
+    clearInterval(rocketTimer);
+    rocketTimer=null;
+  }
+  buildRocketTracks();
+}
+
+load();
+</script>
+
+<!-- 첫 사용 안내 -->
+<div class="modal" id="firstGuideModal">
+  <div class="panel">
+    <h2>👋 처음 사용 안내</h2>
+    <p style="line-height:1.8">
+      이 앱은 <b>학생 명단을 먼저 입력</b>하면 더 잘 작동합니다.<br><br>
+      <u><b>⚙️ 선생님 메뉴 → 반 학생 데이터 입력</b></u>에서<br>
+      한 줄에 한 명씩 학생 이름을 입력해 주세요.<br><br>
+      예시<br>
+      1번 김민준<br>
+      2번 이서연<br>
+      3번 박하늘
+    </p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px">
+      <button class="gray" type="button" onclick="closeFirstGuide()">나중에 할게요</button>
+      <button class="primary" type="button" onclick="goTeacherFromGuide()">학생 명단 입력하기</button>
+    </div>
+  </div>
+</div>
+
+
+<script id="firstGuideScript">
+(function(){
+  window.closeFirstGuide = function(){
+    var m = document.getElementById('firstGuideModal');
+    if(m) m.style.display='none';
+    try{ localStorage.setItem('presentGameGuideSeen','1'); }catch(e){}
+  };
+
+  window.goTeacherFromGuide = function(){
+    window.closeFirstGuide();
+    if(typeof openTeacher === 'function') openTeacher();
+  };
+
+  function shouldShowGuide(){
+    try{
+      if(localStorage.getItem('presentGameGuideSeen') === '1') return false;
+    }catch(e){}
+    return true;
+  }
+
+  window.addEventListener('load', function(){
+    setTimeout(function(){
+      if(shouldShowGuide()){
+        var m = document.getElementById('firstGuideModal');
+        if(m) m.style.display='flex';
+      }
+    }, 650);
+  });
+})();
+</script>
+
+<div id="studentCountBadge">참여자 0명</div>
+
+<script id="hundredPointUtilities">
+(function(){
+  window.quietMode = false;
+
+  window.updateStudentCountBadge = function(){
+    var badge = document.getElementById('studentCountBadge');
+    if(!badge || typeof students === 'undefined') return;
+    var active = (typeof activeStudents === 'function') ? activeStudents().length : students.length;
+    badge.textContent = '참여자 ' + active + '명';
+  };
+
+  window.exportAppSettings = function(){
+    try{
+      var data = {
+        version:'present-game-pro-1.0',
+        savedAt:new Date().toISOString(),
+        students:typeof students !== 'undefined' ? students : [],
+        rewards:typeof rewards !== 'undefined' ? rewards : [],
+        priority:typeof priority !== 'undefined' ? priority : [],
+        excluded:typeof excluded !== 'undefined' ? excluded : [],
+        records:typeof records !== 'undefined' ? records : {}
+      };
+      var blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json;charset=utf-8'});
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = '우리반_발표게임_설정.json';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+      a.remove();
+    }catch(e){
+      alert('설정 파일 저장에 실패했어요.');
+    }
+  };
+
+  window.importAppSettings = function(ev){
+    var file = ev && ev.target && ev.target.files ? ev.target.files[0] : null;
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      try{
+        var data = JSON.parse(reader.result);
+        if(!Array.isArray(data.students) || data.students.length < 1){
+          alert('학생 명단이 들어 있는 설정 파일이 아니에요.');
+          return;
+        }
+        students = data.students;
+        rewards = Array.isArray(data.rewards) && data.rewards.length ? data.rewards : rewards;
+        priority = Array.isArray(data.priority) ? data.priority.filter(function(s){return students.includes(s);}) : [];
+        excluded = Array.isArray(data.excluded) ? data.excluded.filter(function(s){return students.includes(s);}) : [];
+        records = data.records || {};
+        if(typeof syncRecords === 'function') syncRecords();
+        if(typeof save === 'function') save();
+        if(typeof renderTeacher === 'function') renderTeacher();
+        if(typeof buildGiftBoxes === 'function') buildGiftBoxes();
+        updateStudentCountBadge();
+        alert('우리 반 설정을 가져왔습니다.');
+      }catch(e){
+        alert('설정 파일을 읽을 수 없어요.');
+      }
+    };
+    reader.readAsText(file);
+    ev.target.value = '';
+  };
+
+  window.downloadRecordsCSV = function(){
+    try{
+      if(typeof students === 'undefined' || typeof records === 'undefined'){
+        alert('저장할 발표 기록이 없어요.');
+        return;
+      }
+      var rows = ['학생,발표횟수'];
+      students.forEach(function(s){
+        rows.push('"' + String(s).replace(/"/g,'""') + '",' + (records[s] || 0));
+      });
+      var blob = new Blob(['\ufeff' + rows.join('\n')], {type:'text/csv;charset=utf-8'});
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = '발표기록.csv';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+      a.remove();
+    }catch(e){
+      alert('발표 기록 저장에 실패했어요.');
+    }
+  };
+
+  window.toggleQuietMode = function(){
+    quietMode = !quietMode;
+    document.body.classList.toggle('quiet', quietMode);
+    var btn = document.getElementById('quietModeBtn');
+    if(btn){
+      btn.textContent = quietMode ? '차분 모드 ON' : '차분 모드 OFF';
+      btn.classList.toggle('on', quietMode);
+    }
+  };
+
+  window.clearTodayExcluded = function(){
+    if(typeof excluded === 'undefined') return;
+    excluded = [];
+    if(typeof save === 'function') save();
+    if(typeof renderTeacher === 'function') renderTeacher();
+    updateStudentCountBadge();
+    alert('오늘 발표 제외 목록을 모두 해제했습니다.');
+  };
+
+  window.resetAllAppData = function(){
+    if(!confirm('학생 명단, 보상, 기록, 제외 설정을 모두 초기화할까요?')) return;
+    try{ localStorage.removeItem('presentGamePro'); }catch(e){}
+    location.reload();
+  };
+
+  var oldSave = window.save;
+  if(typeof oldSave === 'function'){
+    window.save = function(){
+      oldSave();
+      updateStudentCountBadge();
+    };
+  }
+
+  var oldApplyStudents = window.applyStudents;
+  if(typeof oldApplyStudents === 'function'){
+    window.applyStudents = function(){
+      oldApplyStudents();
+      updateStudentCountBadge();
+    };
+  }
+
+  var oldToggleExclude = window.toggleExclude;
+  if(typeof oldToggleExclude === 'function'){
+    window.toggleExclude = function(name){
+      oldToggleExclude(name);
+      updateStudentCountBadge();
+    };
+  }
+
+  window.addEventListener('load', function(){
+    setTimeout(updateStudentCountBadge, 500);
+  });
+})();
+</script>
+
+
+<script id="safetyGuards">
+(function(){
+  var oldPickStudent = window.pickStudent;
+  if(typeof oldPickStudent === 'function'){
+    window.pickStudent = function(){
+      var active = (typeof activeStudents === 'function') ? activeStudents() : students;
+      if(!active || active.length < 1){
+        alert('참여 가능한 학생이 없어요. 선생님 메뉴에서 제외 학생을 확인해 주세요.');
+        throw new Error('No active students');
+      }
+      return oldPickStudent();
+    };
+  }
+})();
+</script>
+
+</body>
+</html>
