@@ -1,5 +1,6 @@
 "use client";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { buildScheduleDraftFromText } from '@/lib/analyzer';
 
 export default function Schedule() {
   const [schedules, setSchedules] = useState([
@@ -9,13 +10,45 @@ export default function Schedule() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDate, setNewDate] = useState('');
+  const [messageText, setMessageText] = useState('');
+  const [draft, setDraft] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('schedules') || '[]');
+      if (Array.isArray(saved) && saved.length) {
+        setSchedules((prev) => [...prev, ...saved]);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const handleAdd = () => {
     if (!newTitle || !newDate) return;
-    setSchedules([...schedules, { id: Date.now(), title: newTitle, date: newDate, time: '미정' }]);
+    setSchedules((prev) => [...prev, { id: Date.now(), title: newTitle, date: newDate, time: '미정' }]);
     setNewTitle('');
     setNewDate('');
     setIsModalOpen(false);
+  };
+
+  const handleAnalyzeMessage = async () => {
+    if (!messageText.trim()) return;
+    setIsAnalyzing(true);
+    try {
+      const result = buildScheduleDraftFromText(messageText, { defaultHour: 9 });
+      setDraft(result);
+      if (result.isTask && result.schedule) {
+        setNewTitle(result.schedule.title);
+        setNewDate(result.schedule.date);
+        setIsModalOpen(true);
+      }
+    } catch (err) {
+      alert('분석 실패: ' + err.message);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return (
@@ -23,9 +56,30 @@ export default function Schedule() {
       <div style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h2 className="text-display">일정</h2>
-          <p className="text-caption" style={{ marginTop: '4px' }}>개인 및 학교 일정을 확인하고 등록합니다.</p>
+          <p className="text-caption" style={{ marginTop: '4px' }}>메시지를 분석해 일정으로 바로 저장합니다.</p>
         </div>
         <button className="btn-primary" onClick={() => setIsModalOpen(true)}>새 일정</button>
+      </div>
+
+      <div className="card" style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <h3 className="text-title">메시지로 일정 생성</h3>
+        <textarea
+          value={messageText}
+          onChange={(e) => setMessageText(e.target.value)}
+          placeholder="예: 내일 오후 3시 상담해주세요"
+          style={{ minHeight: '90px', padding: '12px', border: '1px solid var(--color-hairline)', borderRadius: '8px' }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span className="text-caption">메시지를 입력하면 AI가 일정 후보로 자동 분석합니다.</span>
+          <button className="btn-primary" onClick={handleAnalyzeMessage} disabled={isAnalyzing}>
+            {isAnalyzing ? '분석 중...' : '분석하기'}
+          </button>
+        </div>
+        {draft && (
+          <div className="text-caption" style={{ color: draft.isTask ? 'var(--color-primary)' : 'var(--color-status-orange)' }}>
+            {draft.isTask ? `일정 후보로 인식됨: ${draft.schedule?.title || draft.title}` : '일정으로 인식되지 않았습니다.'}
+          </div>
+        )}
       </div>
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

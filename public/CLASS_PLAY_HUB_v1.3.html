@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLASS PLAY HUB</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;width:100%;min-height:100%;font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;}
+body{background:linear-gradient(180deg,#0f172a,#020617);color:#fff;}
+
+/* ---------- 홈 화면 ---------- */
+#home{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 24px 56px;}
+.head{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:28px;text-align:center;}
+.logo{font-size:64px;filter:drop-shadow(0 10px 24px rgba(0,0,0,.35));}
+h1{margin:0;font-size:clamp(30px,6vw,52px);letter-spacing:-2px;background:linear-gradient(180deg,#ffffff,#c7d2fe);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.ver{font-size:12px;font-weight:700;letter-spacing:2px;color:#a5b4fc;background:rgba(99,102,241,.16);border:1px solid rgba(165,180,252,.35);padding:4px 14px;border-radius:999px;}
+.notice{margin:0;font-size:13.5px;line-height:1.65;color:#cbd5e1;max-width:480px;}
+.notice b{color:#fde68a;font-weight:700;}
+
+.grid{width:min(880px,94vw);display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;}
+.tool{display:flex;align-items:center;gap:14px;text-align:left;border:1px solid rgba(255,255,255,.12);cursor:pointer;border-radius:20px;padding:18px 20px;color:#fff;font-family:inherit;background:linear-gradient(180deg,rgba(79,70,229,.28),rgba(49,46,129,.28));box-shadow:0 10px 30px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.12);transition:transform .16s,box-shadow .16s,border-color .16s;}
+.tool:hover{transform:translateY(-4px);border-color:rgba(165,180,252,.6);box-shadow:0 18px 40px rgba(0,0,0,.36),inset 0 1px 0 rgba(255,255,255,.16);}
+.tool:focus-visible{outline:3px solid #a5b4fc;outline-offset:2px;}
+.tool:active{transform:translateY(1px);}
+.tool .icon{font-size:34px;flex:none;}
+.tool .name{margin:0;font-size:17px;font-weight:900;letter-spacing:-.5px;}
+.tool .desc{margin:3px 0 0;font-size:12.5px;color:#cbd5e1;line-height:1.45;}
+.tool .tab-mark{margin-left:auto;flex:none;font-size:11px;color:#a5b4fc;border:1px solid rgba(165,180,252,.4);border-radius:999px;padding:2px 8px;}
+.empty{color:#94a3b8;font-size:14px;text-align:center;padding:40px 0;}
+
+/* ---------- 도구 실행 화면 ---------- */
+#appView{display:none;position:fixed;inset:0;background:#000;flex-direction:column;z-index:999;}
+#topBar{flex:none;display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(15,23,42,.94);border-bottom:1px solid rgba(255,255,255,.14);}
+#topBar .title{font-weight:900;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#topBar button,#topBar a{border:0;border-radius:999px;padding:8px 14px;font-weight:900;font-size:13px;font-family:inherit;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.22);cursor:pointer;text-decoration:none;flex:none;}
+#topBar button:hover,#topBar a:hover{background:rgba(255,255,255,.2);}
+#topBar .spacer{flex:1;}
+#frameWrap{flex:1;position:relative;}
+#appFrame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff;}
+#frameHint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);font-size:12.5px;color:#e2e8f0;background:rgba(15,23,42,.85);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:7px 16px;pointer-events:none;}
+
+@media(max-width:600px){
+  #home{padding:28px 16px 40px;}
+  .logo{font-size:52px;}
+  .grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div id="home">
+  <div class="head">
+    <div class="logo">📚</div>
+    <h1>CLASS PLAY HUB</h1>
+    <div class="ver">v2.0</div>
+    <p class="notice">수업에 쓰는 도구들을 한곳에서 빠르게 엽니다.<br><b>도구 추가·수정</b>은 이 파일 하단의 <b>TOOLS 목록</b>만 고치면 됩니다.</p>
+  </div>
+  <div class="grid" id="grid" role="list"></div>
+  <p class="empty" id="empty" hidden>등록된 도구가 없습니다. 파일 하단의 TOOLS 목록에 도구를 추가하세요.</p>
+</div>
+
+<div id="appView">
+  <div id="topBar">
+    <button type="button" onclick="goHome()">← 처음 화면</button>
+    <span class="title" id="appTitle"></span>
+    <span class="spacer"></span>
+    <a id="newTabLink" href="#" target="_blank" rel="noreferrer noopener">새 창에서 열기 ↗</a>
+  </div>
+  <div id="frameWrap">
+    <iframe id="appFrame" title="도구 화면"></iframe>
+    <div id="frameHint">화면이 비어 있으면 이 사이트가 삽입을 차단한 것입니다 → 오른쪽 위 "새 창에서 열기"를 누르세요. (ESC: 처음 화면)</div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   TOOLS: 여기에 도구를 추가/수정하세요.
+   - name : 카드에 표시될 이름
+   - desc : 짧은 설명
+   - icon : 이모지
+   - url  : 열 주소 (외부 URL 또는 내부 경로)
+   - mode : "frame" = 이 화면 안에서 열기
+            "tab"   = 새 창에서 열기 (iframe 삽입을 차단하는 사이트용)
+   ============================================================ */
+const TOOLS = [
+  { name: '수업 도구', desc: '연결된 교육 도구 열기', icon: '🎮', url: 'https://www.example.com', mode: 'frame' },
+  { name: '타이머', desc: '수업용 큰 화면 타이머', icon: '⏱️', url: 'https://vclock.kr/timer/', mode: 'frame' },
+  { name: '자리 뽑기', desc: '학생 자리 무작위 배치', icon: '🪑', url: 'https://www.superteachertools.us/instantclassroom/seating-chart/', mode: 'tab' },
+];
+
+const $ = (id) => document.getElementById(id);
+
+function renderGrid() {
+  const grid = $('grid');
+  grid.innerHTML = '';
+  $('empty').hidden = TOOLS.length > 0;
+  TOOLS.forEach((tool) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tool';
+    btn.setAttribute('role', 'listitem');
+    btn.innerHTML =
+      '<span class="icon" aria-hidden="true"></span>' +
+      '<span><span class="name"></span><p class="desc"></p></span>' +
+      (tool.mode === 'tab' ? '<span class="tab-mark">새 창</span>' : '');
+    btn.querySelector('.icon').textContent = tool.icon || '🔗';
+    btn.querySelector('.name').textContent = tool.name;
+    btn.querySelector('.desc').textContent = tool.desc || '';
+    btn.addEventListener('click', () => openTool(tool));
+    grid.appendChild(btn);
+  });
+}
+
+function openTool(tool) {
+  if (tool.mode === 'tab') {
+    window.open(tool.url, '_blank', 'noopener');
+    return;
+  }
+  $('appTitle').textContent = tool.name;
+  $('newTabLink').href = tool.url;
+  $('appFrame').src = tool.url;
+  $('home').style.display = 'none';
+  $('appView').style.display = 'flex';
+}
+
+function goHome() {
+  $('home').style.display = 'flex';
+  $('appView').style.display = 'none';
+  $('appFrame').src = '';
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && $('appView').style.display === 'flex') goHome();
+});
+
+renderGrid();
+</script>
+</body>
+</html>
