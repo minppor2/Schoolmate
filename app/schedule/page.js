@@ -1,44 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { buildScheduleDraftFromText } from '@/lib/analyzer';
-
-// Google 캘린더 일정 등록 URL (로그인 연동 없이 작동하는 템플릿 방식)
-function toGCalStamp(d) {
-  const p = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}T${p(d.getHours())}${p(d.getMinutes())}00`;
-}
-
-// 앱이 표시하는 날짜 문자열("오늘", "7월 3일", "2026-07-03" 등)을 Date로 변환
-function parseDisplayDate(dateStr) {
-  const text = String(dateStr || '');
-  const now = new Date();
-  const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  if (text.includes('오늘')) return base;
-  if (text.includes('내일')) { base.setDate(base.getDate() + 1); return base; }
-  if (text.includes('모레')) { base.setDate(base.getDate() + 2); return base; }
-  const md = text.match(/(?:(\d{4})년\s*)?(\d{1,2})월\s*(\d{1,2})일/);
-  if (md) return new Date(md[1] ? +md[1] : now.getFullYear(), +md[2] - 1, +md[3]);
-  const parsed = new Date(text);
-  if (!isNaN(parsed)) return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
-  return null;
-}
-
-function gcalUrl(sch) {
-  const params = new URLSearchParams({ action: 'TEMPLATE', text: sch.title, details: '스쿨메이트 AI에서 추가한 일정' });
-  let start = sch.startISO ? new Date(sch.startISO) : null;
-  if (!start || isNaN(start)) {
-    start = parseDisplayDate(sch.date);
-    if (start) {
-      const tm = /^(\d{1,2}):(\d{2})$/.exec(sch.time || '');
-      start.setHours(tm ? +tm[1] : 9, tm ? +tm[2] : 0, 0, 0);
-    }
-  }
-  if (start && !isNaN(start)) {
-    const end = new Date(start.getTime() + 60 * 60 * 1000);
-    params.set('dates', `${toGCalStamp(start)}/${toGCalStamp(end)}`);
-  }
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
+import { gcalUrl } from '@/lib/scheduleUtils';
 
 export default function Schedule() {
   const [schedules, setSchedules] = useState([
