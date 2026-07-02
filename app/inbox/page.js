@@ -5,6 +5,7 @@ import { db } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { buildScheduleDraftFromText } from '@/lib/analyzer';
 import { gcalUrl, ddayInfo } from '@/lib/scheduleUtils';
+import Icon from '@/components/Icon';
 
 const STORAGE_KEY = 'inbox_tasks';
 
@@ -211,7 +212,7 @@ export default function Inbox() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span className="text-caption">AI가 여러 업무도 한 번에 추출합니다 (마감일·중요도 포함).</span>
           <button className="btn-primary" onClick={handleAnalyze} disabled={analyzing || !text.trim()}>
-            {analyzing ? 'AI 분석 중...' : '🤖 분석해서 추가'}
+            {analyzing ? 'AI 분석 중...' : <><Icon name="smart_toy" size={17} style={{ marginRight: 6 }} />분석해서 추가</>}
           </button>
         </div>
         {notice && <div className="text-caption" style={{ color: 'var(--color-primary)' }}>{notice}</div>}
@@ -257,8 +258,9 @@ export default function Inbox() {
             <h4 className="text-body-strong" style={{ textDecoration: (tab === 'ignored' || task.done) ? 'line-through' : 'none' }}>
               {task.title}
             </h4>
-            <div className="text-caption" style={{ color: 'var(--color-muted-ink)' }}>
-              📅 {task.date || '날짜 미정'}{task.time ? ` ⏰ ${task.time}` : ''}
+            <div className="text-caption" style={{ color: 'var(--color-muted-ink)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Icon name="event" size={15} /> {task.date || '날짜 미정'}
+              {task.time ? <><Icon name="schedule" size={15} style={{ marginLeft: 6 }} /> {task.time}</> : null}
             </div>
 
             {tab === 'candidate' && (
@@ -276,7 +278,7 @@ export default function Inbox() {
                 </label>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <a href={gcalUrl(task)} target="_blank" rel="noreferrer noopener" style={{ flex: 1 }}>
-                    <button className="btn-secondary" style={{ width: '100%' }}>📅 캘린더</button>
+                    <button className="btn-secondary" style={{ width: '100%' }}><Icon name="calendar_add_on" size={16} style={{ marginRight: 4 }} />캘린더</button>
                   </a>
                   <button className="btn-secondary" style={{ flex: 1 }} onClick={() => addToSchedule(task)}>일정에 추가</button>
                   <button className="btn-utility" onClick={() => remove(task.id)}>삭제</button>
@@ -286,7 +288,7 @@ export default function Inbox() {
 
             {tab === 'ignored' && (
               <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', paddingTop: '8px' }}>
-                <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setStatus(task.id, 'candidate')}>↩ 복구</button>
+                <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setStatus(task.id, 'candidate')}><Icon name="undo" size={16} style={{ marginRight: 4 }} />복구</button>
                 <button className="btn-utility" onClick={() => remove(task.id)}>삭제</button>
               </div>
             )}

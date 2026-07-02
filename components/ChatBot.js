@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Icon from './Icon';
 
 const WELCOME = {
   role: 'assistant',
@@ -64,7 +65,7 @@ export default function ChatBot() {
           boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
         }}
       >
-        {open ? '✕' : '🤖'}
+        <Icon name={open ? 'close' : 'smart_toy'} size={28} filled />
       </button>
 
       {open && (
@@ -87,8 +88,8 @@ export default function ChatBot() {
             overflow: 'hidden',
           }}
         >
-          <div style={{ padding: '12px 16px', background: '#0066CC', color: 'white', fontWeight: 700, fontSize: 15 }}>
-            🤖 스쿨메이트 AI 챗봇
+          <div style={{ padding: '12px 16px', background: '#0066CC', color: 'white', fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="smart_toy" size={20} filled /> 스쿨메이트 AI 챗봇
           </div>
 
           <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 8, background: '#F5F5F7' }}>

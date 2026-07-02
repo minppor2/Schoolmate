@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import Icon from '@/components/Icon';
 
 const DEFAULT_CONFIG = {
   rooms: ['컴퓨터실', '과학실', '도서관', '음악실'],
@@ -127,7 +128,7 @@ export default function Reservation() {
             {cloud ? (synced ? ' · ☁ 클라우드 공유 중' : ' · ☁ 연결 중...') : ' · 이 브라우저에만 저장됩니다'}
           </p>
         </div>
-        <button className="btn-secondary" onClick={() => setConfigOpen(true)}>⚙ 특별실·교시 설정</button>
+        <button className="btn-secondary" onClick={() => setConfigOpen(true)}><Icon name="settings" size={16} style={{ marginRight: 4 }} />특별실·교시 설정</button>
       </div>
 
       {/* ---------- 날짜별 예약창 ---------- */}

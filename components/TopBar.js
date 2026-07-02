@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useAuth } from '@/lib/AuthContext';
 import { useRouter } from 'next/navigation';
+import Icon from './Icon';
 
 export default function TopBar() {
   const { user, logout } = useAuth();
@@ -27,7 +28,7 @@ export default function TopBar() {
         <div className="status-indicator">
           <span className="status-dot"></span> Chat 연동됨
         </div>
-        <button className="icon-button" aria-label="알림">🔔</button>
+        <button className="icon-button" aria-label="알림"><Icon name="notifications" size={22} /></button>
         
         {user && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

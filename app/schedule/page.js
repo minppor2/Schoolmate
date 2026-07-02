@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { buildScheduleDraftFromText } from '@/lib/analyzer';
 import { gcalUrl } from '@/lib/scheduleUtils';
+import Icon from '@/components/Icon';
 
 export default function Schedule() {
   const [schedules, setSchedules] = useState([
@@ -105,11 +106,13 @@ export default function Schedule() {
           <div key={sch.id} className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px' }}>
             <div>
               <h4 className="text-body-strong">{sch.title}</h4>
-              <span className="text-caption">📅 {sch.date} ⏰ {sch.time}</span>
+              <span className="text-caption" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <Icon name="event" size={15} /> {sch.date} <Icon name="schedule" size={15} style={{ marginLeft: 6 }} /> {sch.time}
+              </span>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <a href={gcalUrl(sch)} target="_blank" rel="noreferrer noopener">
-                <button className="btn-secondary">📅 Google 캘린더에 추가</button>
+                <button className="btn-secondary"><Icon name="calendar_add_on" size={16} style={{ marginRight: 4 }} />Google 캘린더에 추가</button>
               </a>
               <button className="btn-utility" onClick={() => setSchedules(schedules.filter(s => s.id !== sch.id))}>삭제</button>
             </div>

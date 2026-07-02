@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { UserGuide } from '@/components/LegalDocs';
+import Icon from '@/components/Icon';
 
 function LoginContent() {
   const { user, loading, googleLogin, guestLogin } = useAuth();
@@ -127,7 +128,7 @@ function LoginContent() {
             cursor: 'pointer',
           }}
         >
-          📖 사용방법 안내
+          <Icon name="menu_book" size={18} style={{ marginRight: 6 }} /> 사용방법 안내
         </button>
 
         <button
@@ -144,7 +145,7 @@ function LoginContent() {
             cursor: 'pointer',
           }}
         >
-          🔑 테스트 사용자 입장 (관리자 비밀번호)
+          <Icon name="key" size={17} style={{ marginRight: 6 }} /> 테스트 사용자 입장 (관리자 비밀번호)
         </button>
 
         {guestOpen && (
