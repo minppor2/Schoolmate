@@ -30,9 +30,9 @@ export default function LinkPortal({ storageKey, defaultLinks = [] }) {
     setLoaded(true);
   }, [storageKey]);
 
-  // Firestore 실시간 구독 (로그인 시)
+  // Firestore 실시간 구독 (로그인 시 — 게스트(테스트 사용자)는 localStorage만 사용)
   useEffect(() => {
-    if (!user) {
+    if (!user || user.isGuest) {
       setSynced(false);
       remoteReady.current = false;
       return;
@@ -72,7 +72,7 @@ export default function LinkPortal({ storageKey, defaultLinks = [] }) {
   }, [links, loaded, storageKey]);
 
   async function persistRemote(next) {
-    if (!user) return;
+    if (!user || user.isGuest) return;
     try {
       const ref = doc(db, 'users', user.uid, 'portals', storageKey);
       await setDoc(ref, { links: next, updatedAt: new Date().toISOString() });
@@ -112,7 +112,7 @@ export default function LinkPortal({ storageKey, defaultLinks = [] }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <span className="text-fine">
-          {user
+          {user && !user.isGuest
             ? (synced ? '☁ 클라우드(Firebase)에 실시간 저장됩니다.' : '☁ 클라우드 연결 중...')
             : '이 브라우저에만 저장됩니다. 로그인하면 클라우드에 동기화됩니다.'}
         </span>

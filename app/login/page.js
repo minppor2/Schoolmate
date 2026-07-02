@@ -3,28 +3,20 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
-
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-const GOOGLE_SCOPE = [
-  'openid',
-  'email',
-  'profile',
-  'https://www.googleapis.com/auth/chat.spaces',
-  'https://www.googleapis.com/auth/chat.spaces.readonly',
-  'https://www.googleapis.com/auth/chat.messages',
-  'https://www.googleapis.com/auth/chat.messages.readonly',
-  'https://www.googleapis.com/auth/calendar.events',
-].join(' ');
+import { UserGuide } from '@/components/LegalDocs';
 
 function LoginContent() {
-  const { user, loading, googleLogin } = useAuth();
+  const { user, loading, googleLogin, guestLogin } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [token, setToken] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [tokenInfo, setTokenInfo] = useState(null);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [guestOpen, setGuestOpen] = useState(false);
+  const [guestPassword, setGuestPassword] = useState('');
+  const [guestBusy, setGuestBusy] = useState(false);
 
   useEffect(() => {
+    // Google Chat 연동 콜백으로 전달된 토큰은 조용히 저장한다 (UI 없음)
     const callbackToken = searchParams.get('token');
     const callbackError = searchParams.get('error');
 
@@ -34,7 +26,6 @@ function LoginContent() {
 
     if (callbackToken) {
       localStorage.setItem('google_access_token', callbackToken);
-      setToken(callbackToken);
       router.push('/inbox');
       return;
     }
@@ -54,22 +45,18 @@ function LoginContent() {
     }
   };
 
-  // Google Chat 연동용 토큰 발급 (OAuth 리다이렉트)
-  const handleChatOAuth = () => {
+  // 테스트 사용자 입장 (관리자 비밀번호)
+  const handleGuestLogin = async () => {
+    if (!guestPassword) return setErrorMessage('관리자 비밀번호를 입력하세요.');
+    setGuestBusy(true);
+    setErrorMessage('');
     try {
-      const redirectUri = `${window.location.origin}/api/auth/callback`;
-      const params = new URLSearchParams({
-        client_id: GOOGLE_CLIENT_ID || '',
-        redirect_uri: redirectUri,
-        response_type: 'code',
-        scope: GOOGLE_SCOPE,
-        access_type: 'offline',
-        prompt: 'consent',
-      });
-
-      window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+      await guestLogin(guestPassword);
+      router.push('/');
     } catch (error) {
-      alert('로그인 실패: ' + error.message);
+      setErrorMessage(error.message);
+    } finally {
+      setGuestBusy(false);
     }
   };
 
@@ -80,25 +67,6 @@ function LoginContent() {
       </div>
     );
   }
-
-  const verifyToken = async () => {
-    if (!token) {
-      return alert('토큰을 먼저 입력하거나 붙여넣으세요.');
-    }
-
-    try {
-      const res = await fetch(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${encodeURIComponent(token)}`);
-      const data = await res.json();
-      setTokenInfo(data);
-      if (!res.ok) {
-        setErrorMessage(data.error_description || data.error || '토큰 검증에 실패했습니다.');
-      } else {
-        setErrorMessage('토큰이 유효합니다. scopes: ' + (data.scope || '없음'));
-      }
-    } catch (err) {
-      setErrorMessage(err.message);
-    }
-  };
 
   return (
     <div style={{
@@ -115,7 +83,7 @@ function LoginContent() {
         borderRadius: '12px',
         boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
         textAlign: 'center',
-        maxWidth: '400px'
+        width: 'min(400px, 92vw)'
       }}>
         <h1 style={{ fontSize: '28px', fontWeight: '600', marginBottom: '8px' }}>
           스쿨메이트 AI
@@ -145,10 +113,28 @@ function LoginContent() {
         </button>
 
         <button
-          onClick={handleChatOAuth}
+          onClick={() => setGuideOpen(true)}
           style={{
             width: '100%',
-            marginTop: '8px',
+            marginTop: '10px',
+            padding: '12px 16px',
+            backgroundColor: '#10B981',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '15px',
+            fontWeight: '500',
+            cursor: 'pointer',
+          }}
+        >
+          📖 사용방법 안내
+        </button>
+
+        <button
+          onClick={() => { setGuestOpen(!guestOpen); setErrorMessage(''); }}
+          style={{
+            width: '100%',
+            marginTop: '10px',
             padding: '10px 16px',
             backgroundColor: '#E5E7EB',
             color: '#111827',
@@ -158,83 +144,70 @@ function LoginContent() {
             cursor: 'pointer',
           }}
         >
-          Google Chat 연동 (토큰 발급)
+          🔑 테스트 사용자 입장 (관리자 비밀번호)
         </button>
 
-        <textarea
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
-          placeholder="Google Chat access token을 붙여넣으세요"
-          style={{ width: '100%', minHeight: '80px', marginTop: '16px', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }}
-        />
-        <div style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            onClick={() => {
-              if (!token) return alert('토큰을 입력하거나 붙여넣으세요.');
-              localStorage.setItem('google_access_token', token);
-              router.push('/inbox');
-            }}
-            style={{
-              padding: '10px 14px',
-              backgroundColor: '#0066CC',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-            }}
-          >
-            토큰 저장
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              localStorage.removeItem('google_access_token');
-              setToken('');
-              setErrorMessage('');
-              setTokenInfo(null);
-              alert('저장된 토큰을 삭제했습니다.');
-            }}
-            style={{
-              padding: '10px 14px',
-              backgroundColor: '#E5E7EB',
-              color: '#111827',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-            }}
-          >
-            토큰 삭제
-          </button>
-          <button
-            type="button"
-            onClick={verifyToken}
-            style={{
-              padding: '10px 14px',
-              backgroundColor: '#10B981',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-            }}
-          >
-            토큰 검증
-          </button>
-        </div>
+        {guestOpen && (
+          <div style={{ marginTop: '10px', display: 'flex', gap: '8px' }}>
+            <input
+              type="password"
+              value={guestPassword}
+              onChange={(e) => setGuestPassword(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleGuestLogin(); }}
+              placeholder="관리자 비밀번호"
+              style={{ flex: 1, padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db' }}
+            />
+            <button
+              onClick={handleGuestLogin}
+              disabled={guestBusy}
+              style={{
+                padding: '10px 16px',
+                backgroundColor: '#111827',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                opacity: guestBusy ? 0.6 : 1,
+              }}
+            >
+              {guestBusy ? '확인 중...' : '입장'}
+            </button>
+          </div>
+        )}
+
         {errorMessage ? (
           <p style={{ marginTop: '12px', fontSize: '13px', color: '#B91C1C' }}>
             {errorMessage}
           </p>
         ) : null}
-        {tokenInfo ? (
-          <pre style={{ marginTop: '10px', fontSize: '12px', color: '#111827', textAlign: 'left', whiteSpace: 'pre-wrap' }}>
-            {JSON.stringify(tokenInfo, null, 2)}
-          </pre>
-        ) : null}
+
         <p style={{ marginTop: '20px', fontSize: '12px', color: '#6E6E73' }}>
-          Google 계정으로 안전하게 로그인하고, 토큰이 있으면 Google Chat 연동 테스트도 가능합니다.
+          Google 계정으로 안전하게 로그인하세요. 심사·체험용 테스트 입장은 관리자에게 비밀번호를 문의하세요.
         </p>
       </div>
+
+      {guideOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="사용방법 안내"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}
+          onClick={() => setGuideOpen(false)}
+        >
+          <div
+            style={{ width: 'min(720px, 94vw)', maxHeight: '86vh', background: 'white', borderRadius: 10, overflow: 'hidden', display: 'flex', flexDirection: 'column', textAlign: 'left' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #E0E0E0' }}>
+              <strong>사용방법 안내</strong>
+              <button className="btn-primary" onClick={() => setGuideOpen(false)}>닫기</button>
+            </div>
+            <div style={{ overflowY: 'auto', padding: '8px 20px 20px' }}>
+              <UserGuide />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
