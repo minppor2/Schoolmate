@@ -29,16 +29,36 @@ h1{margin:0;font-size:clamp(30px,6vw,52px);letter-spacing:-2px;background:linear
 .tool .tab-mark{margin-left:auto;flex:none;font-size:11px;color:#a5b4fc;border:1px solid rgba(165,180,252,.4);border-radius:999px;padding:2px 8px;}
 .empty{color:#94a3b8;font-size:14px;text-align:center;padding:40px 0;}
 
-/* ---------- 도구 실행 화면 ---------- */
-#appView{display:none;position:fixed;inset:0;background:#000;flex-direction:column;z-index:999;}
-#topBar{flex:none;display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(15,23,42,.94);border-bottom:1px solid rgba(255,255,255,.14);}
-#topBar .title{font-weight:900;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-#topBar button,#topBar a{border:0;border-radius:999px;padding:8px 14px;font-weight:900;font-size:13px;font-family:inherit;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.22);cursor:pointer;text-decoration:none;flex:none;}
-#topBar button:hover,#topBar a:hover{background:rgba(255,255,255,.2);}
-#topBar .spacer{flex:1;}
+/* ---------- 공통 실행 화면 ---------- */
+.view{display:none;position:fixed;inset:0;background:#0f172a;flex-direction:column;z-index:999;}
+.topBar{flex:none;display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(15,23,42,.94);border-bottom:1px solid rgba(255,255,255,.14);}
+.topBar .title{font-weight:900;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.topBar button,.topBar a{border:0;border-radius:999px;padding:8px 14px;font-weight:900;font-size:13px;font-family:inherit;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.22);cursor:pointer;text-decoration:none;flex:none;}
+.topBar button:hover,.topBar a:hover{background:rgba(255,255,255,.2);}
+.topBar .spacer{flex:1;}
+
+/* ---------- iframe 도구 화면 ---------- */
 #frameWrap{flex:1;position:relative;}
 #appFrame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff;}
 #frameHint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);font-size:12.5px;color:#e2e8f0;background:rgba(15,23,42,.85);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:7px 16px;pointer-events:none;}
+
+/* ---------- 자리 뽑기 (내장 도구) ---------- */
+#seatBody{flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:16px;align-items:center;}
+.seatPanel{width:min(760px,96vw);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;}
+.seatPanel label{font-size:13px;font-weight:700;color:#c7d2fe;}
+.seatPanel textarea{width:100%;min-height:96px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(2,6,23,.6);color:#fff;padding:10px 12px;font-family:inherit;font-size:14px;resize:vertical;}
+.seatRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.seatRow select,.seatRow input{border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(2,6,23,.6);color:#fff;padding:9px 12px;font-family:inherit;font-size:14px;}
+.seatRow .go{border:0;border-radius:12px;padding:11px 22px;font-weight:900;font-size:15px;font-family:inherit;color:#fff;background:linear-gradient(180deg,#4f46e5,#3730a3);cursor:pointer;box-shadow:0 6px 0 #1e1b4b;}
+.seatRow .go:active{transform:translateY(3px);box-shadow:0 3px 0 #1e1b4b;}
+.seatRow .go.alt{background:linear-gradient(180deg,#fb923c,#c2410c);box-shadow:0 6px 0 #7c2d12;}
+.seatRow .go.alt:active{box-shadow:0 3px 0 #7c2d12;}
+#board{width:min(760px,96vw);text-align:center;background:linear-gradient(180deg,#14532d,#166534);border:2px solid rgba(255,255,255,.25);border-radius:10px;padding:8px;font-weight:900;letter-spacing:6px;display:none;}
+#seatGrid{width:min(760px,96vw);display:grid;gap:10px;}
+.seat{background:linear-gradient(180deg,rgba(251,146,60,.25),rgba(194,65,12,.25));border:1px solid rgba(251,146,60,.5);border-radius:12px;padding:12px 6px;text-align:center;}
+.seat .no{font-size:11px;color:#fdba74;font-weight:700;}
+.seat .nm{font-size:15px;font-weight:900;margin-top:2px;word-break:keep-all;}
+#pickResult{display:none;width:min(760px,96vw);text-align:center;font-size:clamp(28px,6vw,48px);font-weight:900;padding:24px;border-radius:16px;background:linear-gradient(180deg,rgba(79,70,229,.35),rgba(49,46,129,.35));border:1px solid rgba(165,180,252,.5);}
 
 @media(max-width:600px){
   #home{padding:28px 16px 40px;}
@@ -53,15 +73,16 @@ h1{margin:0;font-size:clamp(30px,6vw,52px);letter-spacing:-2px;background:linear
   <div class="head">
     <div class="logo">📚</div>
     <h1>CLASS PLAY HUB</h1>
-    <div class="ver">v2.0</div>
+    <div class="ver">v2.1</div>
     <p class="notice">수업에 쓰는 도구들을 한곳에서 빠르게 엽니다.<br><b>도구 추가·수정</b>은 이 파일 하단의 <b>TOOLS 목록</b>만 고치면 됩니다.</p>
   </div>
   <div class="grid" id="grid" role="list"></div>
   <p class="empty" id="empty" hidden>등록된 도구가 없습니다. 파일 하단의 TOOLS 목록에 도구를 추가하세요.</p>
 </div>
 
-<div id="appView">
-  <div id="topBar">
+<!-- iframe 도구 화면 -->
+<div id="appView" class="view">
+  <div class="topBar">
     <button type="button" onclick="goHome()">← 처음 화면</button>
     <span class="title" id="appTitle"></span>
     <span class="spacer"></span>
@@ -73,6 +94,36 @@ h1{margin:0;font-size:clamp(30px,6vw,52px);letter-spacing:-2px;background:linear
   </div>
 </div>
 
+<!-- 자리 뽑기 (내장 도구) -->
+<div id="seatView" class="view">
+  <div class="topBar">
+    <button type="button" onclick="goHome()">← 처음 화면</button>
+    <span class="title">🪑 자리 뽑기</span>
+  </div>
+  <div id="seatBody">
+    <div class="seatPanel">
+      <label for="nameInput">학생 이름 (쉼표 또는 줄바꿈으로 구분 — 비워두면 번호로 진행)</label>
+      <textarea id="nameInput" placeholder="예) 김철수, 이영희, 박민수 ..."></textarea>
+      <div class="seatRow">
+        <label>인원수 <input id="countInput" type="number" min="1" max="60" value="30" style="width:70px"></label>
+        <label>한 줄에
+          <select id="colInput">
+            <option value="4">4명</option>
+            <option value="5" selected>5명</option>
+            <option value="6">6명</option>
+          </select>
+        </label>
+        <span class="spacer" style="flex:1"></span>
+        <button type="button" class="go" onclick="drawSeats()">🎲 자리 뽑기!</button>
+        <button type="button" class="go alt" onclick="pickOne()">🎯 발표자 뽑기</button>
+      </div>
+    </div>
+    <div id="pickResult"></div>
+    <div id="board">칠 판</div>
+    <div id="seatGrid"></div>
+  </div>
+</div>
+
 <script>
 /* ============================================================
    TOOLS: 여기에 도구를 추가/수정하세요.
@@ -80,16 +131,18 @@ h1{margin:0;font-size:clamp(30px,6vw,52px);letter-spacing:-2px;background:linear
    - desc : 짧은 설명
    - icon : 이모지
    - url  : 열 주소 (외부 URL 또는 내부 경로)
-   - mode : "frame" = 이 화면 안에서 열기
-            "tab"   = 새 창에서 열기 (iframe 삽입을 차단하는 사이트용)
+   - mode : "frame"   = 이 화면 안에서 열기
+            "tab"     = 새 창에서 열기 (iframe 삽입을 차단하는 사이트용)
+            "builtin" = 내장 도구 (builtin: 'seat' 등)
    ============================================================ */
 const TOOLS = [
-  { name: '수업 도구', desc: '연결된 교육 도구 열기', icon: '🎮', url: 'https://www.example.com', mode: 'frame' },
+  { name: '수업 도구', desc: '연결된 교육 도구 열기 (주소 설정 필요)', icon: '🎮', url: 'https://www.example.com', mode: 'frame' },
   { name: '타이머', desc: '수업용 큰 화면 타이머', icon: '⏱️', url: 'https://vclock.kr/timer/', mode: 'frame' },
-  { name: '자리 뽑기', desc: '학생 자리 무작위 배치', icon: '🪑', url: 'https://www.superteachertools.us/instantclassroom/seating-chart/', mode: 'tab' },
+  { name: '자리 뽑기', desc: '학생 자리 무작위 배치 · 발표자 뽑기', icon: '🪑', mode: 'builtin', builtin: 'seat' },
 ];
 
 const $ = (id) => document.getElementById(id);
+const NAMES_KEY = 'cph_seat_names';
 
 function renderGrid() {
   const grid = $('grid');
@@ -113,8 +166,13 @@ function renderGrid() {
 }
 
 function openTool(tool) {
+  if (tool.mode === 'builtin') {
+    if (tool.builtin === 'seat') openSeat();
+    return;
+  }
   if (tool.mode === 'tab') {
-    window.open(tool.url, '_blank', 'noopener');
+    const win = window.open(tool.url, '_blank', 'noopener');
+    if (!win) alert('팝업이 차단되었습니다. 브라우저의 팝업 허용 후 다시 시도하세요.');
     return;
   }
   $('appTitle').textContent = tool.name;
@@ -127,11 +185,65 @@ function openTool(tool) {
 function goHome() {
   $('home').style.display = 'flex';
   $('appView').style.display = 'none';
+  $('seatView').style.display = 'none';
   $('appFrame').src = '';
 }
 
+/* ---------- 자리 뽑기 ---------- */
+function openSeat() {
+  try { $('nameInput').value = localStorage.getItem(NAMES_KEY) || ''; } catch (e) {}
+  $('home').style.display = 'none';
+  $('seatView').style.display = 'flex';
+}
+
+function getStudents() {
+  const raw = $('nameInput').value.trim();
+  if (raw) {
+    const names = raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+    try { localStorage.setItem(NAMES_KEY, raw); } catch (e) {}
+    if (names.length > 0) return names;
+  }
+  const n = Math.max(1, Math.min(60, parseInt($('countInput').value, 10) || 30));
+  return Array.from({ length: n }, (_, i) => (i + 1) + '번');
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function drawSeats() {
+  const students = shuffle(getStudents());
+  const cols = parseInt($('colInput').value, 10) || 5;
+  const grid = $('seatGrid');
+  grid.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
+  grid.innerHTML = '';
+  students.forEach((name, i) => {
+    const seat = document.createElement('div');
+    seat.className = 'seat';
+    seat.innerHTML = '<div class="no"></div><div class="nm"></div>';
+    seat.querySelector('.no').textContent = (i + 1) + '번 자리';
+    seat.querySelector('.nm').textContent = name;
+    grid.appendChild(seat);
+  });
+  $('board').style.display = 'block';
+  $('pickResult').style.display = 'none';
+}
+
+function pickOne() {
+  const students = getStudents();
+  const pick = students[Math.floor(Math.random() * students.length)];
+  const box = $('pickResult');
+  box.textContent = '🎉 ' + pick;
+  box.style.display = 'block';
+}
+
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && $('appView').style.display === 'flex') goHome();
+  if (e.key === 'Escape') goHome();
 });
 
 renderGrid();
