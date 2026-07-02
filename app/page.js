@@ -69,6 +69,18 @@ export default function Home() {
   const router = useRouter();
   const [graph, setGraph] = useState(null);
   const [hover, setHover] = useState(null);
+  const [graphOpen, setGraphOpen] = useState(true);
+
+  useEffect(() => {
+    try { setGraphOpen(localStorage.getItem('home_graph_open') !== '0'); } catch (e) {}
+  }, []);
+
+  function toggleGraph() {
+    setGraphOpen(prev => {
+      try { localStorage.setItem('home_graph_open', prev ? '0' : '1'); } catch (e) {}
+      return !prev;
+    });
+  }
 
   useEffect(() => {
     if (!loading && !user) {
@@ -148,9 +160,26 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ---------- 옵시디언 스타일 그래프 뷰 ---------- */}
+      {/* ---------- 옵시디언 스타일 그래프 뷰 (접기/펴기 가능) ---------- */}
       <div className="card" style={{ padding: 0, overflow: 'hidden', background: 'radial-gradient(circle at 30% 20%, #1a2247, #0b0f1e 70%)', border: '1px solid #232a4d' }}>
-        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }}>
+        <button
+          onClick={toggleGraph}
+          aria-expanded={graphOpen}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '12px 18px', background: 'none', border: 'none', cursor: 'pointer', color: '#c9d4f0',
+          }}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14 }}>
+            <Icon name="graph_3" size={18} /> 내 연결 그래프
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, color: '#8b9dc3' }}>
+            {graphOpen ? '접기' : '펼치기'}
+            <Icon name={graphOpen ? 'expand_less' : 'expand_more'} size={20} />
+          </span>
+        </button>
+        {graphOpen && (
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', maxWidth: 640, maxHeight: 400, display: 'block', margin: '0 auto' }}>
           {edges.map((e, i) => (
             <line
               key={i}
@@ -197,11 +226,14 @@ export default function Home() {
             );
           })}
         </svg>
+        )}
       </div>
 
-      <p className="text-fine" style={{ marginTop: 10, textAlign: 'center' }}>
-        업무를 저장하거나 일정·예약을 만들면 그래프에 노드가 자라납니다 🌱
-      </p>
+      {graphOpen && (
+        <p className="text-fine" style={{ marginTop: 10, textAlign: 'center' }}>
+          업무를 저장하거나 일정·예약을 만들면 그래프에 노드가 자라납니다 🌱
+        </p>
+      )}
     </div>
   );
 }
