@@ -1,14 +1,21 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useAuth } from '@/lib/AuthContext';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 // 웹페이지 링크를 카드로 보여주는 포털 그리드.
-// storageKey별로 localStorage에 저장되므로 페이지마다 독립적인 목록을 가질 수 있다.
+// 로그인 상태면 Firestore(users/{uid}/portals/{storageKey})에 실시간 동기화되고,
+// 비로그인 상태면 localStorage에만 저장된다.
 export default function LinkPortal({ storageKey, defaultLinks = [] }) {
+  const { user } = useAuth();
   const [links, setLinks] = useState(defaultLinks);
   const [loaded, setLoaded] = useState(false);
+  const [synced, setSynced] = useState(false);
   const [open, setOpen] = useState(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const remoteReady = useRef(false);
 
   useEffect(() => {
     try {
@@ -23,6 +30,38 @@ export default function LinkPortal({ storageKey, defaultLinks = [] }) {
     setLoaded(true);
   }, [storageKey]);
 
+  // Firestore 실시간 구독 (로그인 시)
+  useEffect(() => {
+    if (!user) {
+      setSynced(false);
+      remoteReady.current = false;
+      return;
+    }
+    let unsubscribe;
+    try {
+      const ref = doc(db, 'users', user.uid, 'portals', storageKey);
+      unsubscribe = onSnapshot(
+        ref,
+        (snap) => {
+          remoteReady.current = true;
+          setSynced(true);
+          const data = snap.data();
+          if (data && Array.isArray(data.links)) {
+            setLinks(data.links);
+          }
+        },
+        (err) => {
+          console.error('Firestore sync failed', err);
+          setSynced(false);
+        }
+      );
+    } catch (e) {
+      console.error('Firestore unavailable', e);
+      setSynced(false);
+    }
+    return () => { if (unsubscribe) unsubscribe(); };
+  }, [user, storageKey]);
+
   useEffect(() => {
     if (!loaded) return;
     try {
@@ -32,8 +71,26 @@ export default function LinkPortal({ storageKey, defaultLinks = [] }) {
     }
   }, [links, loaded, storageKey]);
 
-  function handleSave(link) {
+  async function persistRemote(next) {
+    if (!user) return;
+    try {
+      const ref = doc(db, 'users', user.uid, 'portals', storageKey);
+      await setDoc(ref, { links: next, updatedAt: new Date().toISOString() });
+    } catch (e) {
+      console.error('Failed to save links to Firestore', e);
+    }
+  }
+
+  function applyChange(updater) {
     setLinks(prev => {
+      const next = updater(prev);
+      persistRemote(next);
+      return next;
+    });
+  }
+
+  function handleSave(link) {
+    applyChange(prev => {
       const idx = prev.findIndex(l => l.id === link.id);
       if (idx >= 0) {
         const copy = [...prev];
@@ -48,12 +105,17 @@ export default function LinkPortal({ storageKey, defaultLinks = [] }) {
 
   function handleDelete(id) {
     if (!confirm('이 카드를 삭제하시겠습니까?')) return;
-    setLinks(prev => prev.filter(l => l.id !== id));
+    applyChange(prev => prev.filter(l => l.id !== id));
   }
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <span className="text-fine">
+          {user
+            ? (synced ? '☁ 클라우드(Firebase)에 실시간 저장됩니다.' : '☁ 클라우드 연결 중...')
+            : '이 브라우저에만 저장됩니다. 로그인하면 클라우드에 동기화됩니다.'}
+        </span>
         <button className="btn-primary" onClick={() => { setEditing(null); setEditorOpen(true); }}>
           + 웹페이지 추가
         </button>

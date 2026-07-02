@@ -17,7 +17,7 @@ const GOOGLE_SCOPE = [
 ].join(' ');
 
 function LoginContent() {
-  const { user, loading } = useAuth();
+  const { user, loading, googleLogin } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [token, setToken] = useState('');
@@ -44,7 +44,18 @@ function LoginContent() {
     }
   }, [user, loading, router, searchParams]);
 
+  // 기본 로그인: Firebase Authentication (Google 계정)
   const handleGoogleLogin = async () => {
+    try {
+      await googleLogin();
+      router.push('/');
+    } catch (error) {
+      alert('로그인 실패: ' + error.message);
+    }
+  };
+
+  // Google Chat 연동용 토큰 발급 (OAuth 리다이렉트)
+  const handleChatOAuth = () => {
     try {
       const redirectUri = `${window.location.origin}/api/auth/callback`;
       const params = new URLSearchParams({
@@ -131,6 +142,23 @@ function LoginContent() {
           onMouseOut={(e) => e.target.style.backgroundColor = '#0066CC'}
         >
           Google로 로그인
+        </button>
+
+        <button
+          onClick={handleChatOAuth}
+          style={{
+            width: '100%',
+            marginTop: '8px',
+            padding: '10px 16px',
+            backgroundColor: '#E5E7EB',
+            color: '#111827',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '14px',
+            cursor: 'pointer',
+          }}
+        >
+          Google Chat 연동 (토큰 발급)
         </button>
 
         <textarea
