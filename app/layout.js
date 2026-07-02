@@ -5,6 +5,7 @@ import TopBar from '@/components/TopBar';
 import Sidebar from '@/components/Sidebar';
 import Footer from '@/components/Footer';
 import ChatBot from '@/components/ChatBot';
+import NotificationCenter from '@/components/NotificationCenter';
 import { AuthProvider } from '@/lib/AuthContext';
 import { usePathname } from 'next/navigation';
 
@@ -40,6 +41,7 @@ export default function RootLayout({ children }) {
             </div>
           )}
           <ChatBot />
+          <NotificationCenter />
         </AuthProvider>
       </body>
     </html>

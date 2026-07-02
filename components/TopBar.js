@@ -3,11 +3,19 @@
 import Link from 'next/link';
 import { useAuth } from '@/lib/AuthContext';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import Icon from './Icon';
 
 export default function TopBar() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const [notiCount, setNotiCount] = useState(0);
+
+  useEffect(() => {
+    const onCount = (e) => setNotiCount(e.detail || 0);
+    window.addEventListener('noti-count', onCount);
+    return () => window.removeEventListener('noti-count', onCount);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -28,7 +36,22 @@ export default function TopBar() {
         <div className="status-indicator">
           <span className="status-dot"></span> Chat 연동됨
         </div>
-        <button className="icon-button" aria-label="알림"><Icon name="notifications" size={22} /></button>
+        <button
+          className="icon-button"
+          aria-label="알림"
+          onClick={() => window.dispatchEvent(new CustomEvent('noti-open'))}
+          style={{ position: 'relative' }}
+        >
+          <Icon name="notifications" size={22} />
+          {notiCount > 0 && (
+            <span style={{
+              position: 'absolute', top: -2, right: -4,
+              minWidth: 16, height: 16, padding: '0 4px',
+              borderRadius: 999, background: 'var(--color-status-red)', color: 'white',
+              fontSize: 10.5, fontWeight: 700, lineHeight: '16px', textAlign: 'center',
+            }}>{notiCount > 9 ? '9+' : notiCount}</span>
+          )}
+        </button>
         
         {user && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

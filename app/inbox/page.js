@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { buildScheduleDraftFromText } from '@/lib/analyzer';
-import { gcalUrl, ddayInfo } from '@/lib/scheduleUtils';
+import { gcalUrl, ddayInfo, resolveStart } from '@/lib/scheduleUtils';
 import Icon from '@/components/Icon';
 
 const STORAGE_KEY = 'inbox_tasks';
@@ -33,7 +34,16 @@ function isoToLabels(due, time) {
 
 export default function Inbox() {
   const { user } = useAuth();
+  const router = useRouter();
   const cloud = !!user && !user.isGuest;
+
+  // 업무 마감 날짜의 특별실 예약 화면으로 이동
+  function goReserve(task) {
+    const start = resolveStart(task);
+    const p = (n) => String(n).padStart(2, '0');
+    const dateStr = start ? `${start.getFullYear()}-${p(start.getMonth() + 1)}-${p(start.getDate())}` : '';
+    router.push(dateStr ? `/reservation?date=${dateStr}` : '/reservation');
+  }
 
   const [tasks, setTasks] = useState(DEFAULT_TASKS);
   const [loaded, setLoaded] = useState(false);
@@ -281,6 +291,7 @@ export default function Inbox() {
                     <button className="btn-secondary" style={{ width: '100%' }}><Icon name="calendar_add_on" size={16} style={{ marginRight: 4 }} />캘린더</button>
                   </a>
                   <button className="btn-secondary" style={{ flex: 1 }} onClick={() => addToSchedule(task)}>일정에 추가</button>
+                  <button className="btn-secondary" style={{ flex: 1 }} onClick={() => goReserve(task)}><Icon name="school" size={16} style={{ marginRight: 4 }} />특별실 예약</button>
                   <button className="btn-utility" onClick={() => remove(task.id)}>삭제</button>
                 </div>
               </div>

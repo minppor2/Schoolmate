@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
@@ -27,11 +28,21 @@ function dateLabel(dateStr) {
 
 const slotKey = (room, period) => `${room}||${period}`;
 
-export default function Reservation() {
+function ReservationContent() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const cloud = !!user && !user.isGuest; // Firebase 로그인 시에만 Firestore 공유 저장
 
-  const [date, setDate] = useState(() => toDateStr(new Date()));
+  const [date, setDate] = useState(() => {
+    // 업무함 등에서 ?date=YYYY-MM-DD로 진입하면 해당 날짜 예약창을 연다
+    const q = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('date') : null;
+    return q && /^\d{4}-\d{2}-\d{2}$/.test(q) ? q : toDateStr(new Date());
+  });
+
+  useEffect(() => {
+    const q = searchParams.get('date');
+    if (q && /^\d{4}-\d{2}-\d{2}$/.test(q)) setDate(q);
+  }, [searchParams]);
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [reservations, setReservations] = useState({});
   const [slotModal, setSlotModal] = useState(null); // { room, period, existing }
@@ -287,5 +298,13 @@ function ConfigModal({ config, onSave, onClose }) {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Reservation() {
+  return (
+    <Suspense fallback={<div style={{ textAlign: 'center', paddingTop: '80px' }}>로딩 중...</div>}>
+      <ReservationContent />
+    </Suspense>
   );
 }

@@ -16,6 +16,28 @@ export default function Schedule() {
   const [messageText, setMessageText] = useState('');
   const [draft, setDraft] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+
+  const persistSchedules = (next) => {
+    try { localStorage.setItem('schedules', JSON.stringify(next.filter(s => s.id !== 1 && s.id !== 2))); } catch (e) {}
+  };
+
+  function handleImport(tasks) {
+    setSchedules(prev => {
+      const existingTitles = new Set(prev.map(s => s.title));
+      const added = tasks.filter(t => !existingTitles.has(t.title)).map(t => ({
+        id: Date.now() + Math.random(),
+        title: t.title,
+        date: t.date || '미정',
+        time: t.time || '미정',
+        startISO: t.startISO || null,
+      }));
+      const next = [...prev, ...added];
+      persistSchedules(next);
+      return next;
+    });
+    setImportOpen(false);
+  }
 
   useEffect(() => {
     try {
@@ -77,7 +99,10 @@ export default function Schedule() {
           <h2 className="text-display">일정</h2>
           <p className="text-caption" style={{ marginTop: '4px' }}>메시지를 분석해 일정으로 바로 저장합니다.</p>
         </div>
-        <button className="btn-primary" onClick={() => setIsModalOpen(true)}>새 일정</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn-secondary" onClick={() => setImportOpen(true)}><Icon name="inbox" size={16} style={{ marginRight: 4 }} />업무함에서 불러오기</button>
+          <button className="btn-primary" onClick={() => setIsModalOpen(true)}>새 일정</button>
+        </div>
       </div>
 
       <div className="card" style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -120,6 +145,8 @@ export default function Schedule() {
         ))}
       </div>
 
+      {importOpen && <ImportModal onImport={handleImport} onClose={() => setImportOpen(false)} />}
+
       {isModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
           <div className="card" style={{ width: '400px', background: 'var(--color-canvas)', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
@@ -145,6 +172,55 @@ export default function Schedule() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// 업무함에 저장된 업무를 골라 일정으로 가져오는 모달
+function ImportModal({ onImport, onClose }) {
+  const [tasks, setTasks] = useState([]);
+  const [checked, setChecked] = useState({});
+
+  useEffect(() => {
+    try {
+      const all = JSON.parse(localStorage.getItem('inbox_tasks') || '[]');
+      const saved = all.filter(t => t.status === 'saved' && !t.done);
+      setTasks(saved);
+      const init = {};
+      saved.forEach(t => { init[t.id] = true; });
+      setChecked(init);
+    } catch (e) {}
+  }, []);
+
+  const selected = tasks.filter(t => checked[t.id]);
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }} onClick={onClose}>
+      <div className="card" style={{ width: 'min(480px, 92vw)', maxHeight: '80vh', overflowY: 'auto', background: 'var(--color-canvas)', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }} onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-title" style={{ marginBottom: '8px' }}>업무함에서 불러오기</h3>
+        <p className="text-caption" style={{ marginTop: 0 }}>저장한 업무(미완료)를 일정으로 가져옵니다.</p>
+        {tasks.length === 0 ? (
+          <p style={{ padding: '24px 0', textAlign: 'center', color: 'var(--color-muted-ink)' }}>가져올 업무가 없습니다. 업무함에서 업무를 저장해보세요.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: '12px 0' }}>
+            {tasks.map(t => (
+              <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px', borderRadius: 8, cursor: 'pointer', background: checked[t.id] ? 'var(--color-parchment)' : 'transparent' }}>
+                <input type="checkbox" checked={!!checked[t.id]} onChange={(e) => setChecked(prev => ({ ...prev, [t.id]: e.target.checked }))} />
+                <span style={{ flex: 1 }}>
+                  <span style={{ display: 'block', fontWeight: 600, fontSize: 14 }}>{t.title}</span>
+                  <span className="text-fine">{t.date || '날짜 미정'}{t.time ? ` · ${t.time}` : ''}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: 8 }}>
+          <button className="btn-secondary" onClick={onClose}>취소</button>
+          <button className="btn-primary" disabled={selected.length === 0} onClick={() => onImport(selected)}>
+            {selected.length}건 가져오기
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
