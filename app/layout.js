@@ -3,9 +3,11 @@
 import './globals.css';
 import TopBar from '@/components/TopBar';
 import Sidebar from '@/components/Sidebar';
+import BottomNav from '@/components/BottomNav';
 import Footer from '@/components/Footer';
 import ChatBot from '@/components/ChatBot';
 import NotificationCenter from '@/components/NotificationCenter';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AuthProvider } from '@/lib/AuthContext';
 import { usePathname } from 'next/navigation';
 
@@ -34,10 +36,13 @@ export default function RootLayout({ children }) {
               <Sidebar />
               <main className="main-content">
                 <div className="main-content-inner">
-                  {children}
+                  <ProtectedRoute>
+                    {children}
+                  </ProtectedRoute>
                   <Footer />
                 </div>
               </main>
+              <BottomNav />
             </div>
           )}
           <ChatBot />

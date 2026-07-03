@@ -1,19 +1,23 @@
 'use client';
 
-import Link from 'next/link';
 import { useAuth } from '@/lib/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Icon from './Icon';
+import { NAV_ITEMS } from '@/lib/navItems';
 
 export default function TopBar() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [notiCount, setNotiCount] = useState(0);
+  const [query, setQuery] = useState('');
+  const [chatConnected, setChatConnected] = useState(false);
 
   useEffect(() => {
     const onCount = (e) => setNotiCount(e.detail || 0);
     window.addEventListener('noti-count', onCount);
+    // Google Chat 연동 여부 = 저장된 access token 존재 여부
+    try { setChatConnected(!!localStorage.getItem('google_access_token')); } catch (e) {}
     return () => window.removeEventListener('noti-count', onCount);
   }, []);
 
@@ -22,19 +26,41 @@ export default function TopBar() {
     router.push('/login');
   };
 
+  // 검색: 메뉴 이름/경로 키워드로 페이지 이동
+  const handleSearch = (e) => {
+    e.preventDefault();
+    const q = query.trim().toLowerCase();
+    if (!q) return;
+    const hit = NAV_ITEMS.find(item =>
+      item.name.toLowerCase().includes(q) || item.path.toLowerCase().includes(q)
+    );
+    if (hit) {
+      router.push(hit.path);
+      setQuery('');
+    } else {
+      alert(`"${query}"에 해당하는 메뉴를 찾지 못했습니다. (업무함, 일정, 특별실, 학생기록, 설정)`);
+    }
+  };
+
   return (
     <header className="topbar">
       <div className="topbar-left">
         <h1 className="topbar-title">스쿨메이트 AI</h1>
         <span className="topbar-school">창일중학교</span>
       </div>
-      
+
       <div className="topbar-right">
-        <div className="search-bar">
-          <input type="text" placeholder="검색..." />
-        </div>
-        <div className="status-indicator">
-          <span className="status-dot"></span> Chat 연동됨
+        <form className="search-bar" onSubmit={handleSearch}>
+          <input
+            type="text"
+            placeholder="메뉴 검색 (예: 일정)"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </form>
+        <div className="status-indicator" title={chatConnected ? 'Google Chat 토큰이 연동되어 있습니다' : 'Google Chat 미연동'}>
+          <span className="status-dot" style={{ background: chatConnected ? 'var(--color-status-green)' : 'var(--color-hairline)' }}></span>
+          {chatConnected ? 'Chat 연동됨' : 'Chat 미연동'}
         </div>
         <button
           className="icon-button"
@@ -52,7 +78,7 @@ export default function TopBar() {
             }}>{notiCount > 9 ? '9+' : notiCount}</span>
           )}
         </button>
-        
+
         {user && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '12px', color: '#6E6E73' }}>

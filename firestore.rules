@@ -1,0 +1,27 @@
+rules_version = '2';
+
+// 스쿨메이트 AI Firestore 보안 규칙
+// Firebase 콘솔 > Firestore Database > 규칙 탭에 붙여넣거나
+// `firebase deploy --only firestore:rules` 로 배포하세요.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 개인 데이터(포털 카드, 업무함): 본인만 읽고 쓰기
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // 특별실 예약 및 특별실/교시 설정: 로그인한 교사끼리 공유
+    match /reservations/{date} {
+      allow read, write: if request.auth != null;
+    }
+    match /config/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // 그 외 접근 차단
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

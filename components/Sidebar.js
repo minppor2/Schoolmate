@@ -1,21 +1,22 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import Icon from './Icon';
+import { NAV_ITEMS, isActivePath } from '@/lib/navItems';
 
 export default function Sidebar() {
-  const menus = [
-    { name: '홈', path: '/', active: true, icon: 'home' },
-    { name: '업무함', path: '/inbox', active: false, icon: 'inbox' },
-    { name: '일정', path: '/schedule', active: false, icon: 'calendar_month' },
-    { name: '특별실', path: '/reservation', active: false, icon: 'school' },
-    { name: '학생기록', path: '/records', active: false, icon: 'edit_note' },
-    { name: '설정', path: '/settings', active: false, icon: 'settings' }
-  ];
+  const pathname = usePathname();
 
   return (
     <aside className="sidebar">
       <nav className="sidebar-nav">
-        {menus.map((menu) => (
-          <Link href={menu.path} key={menu.name} className={`sidebar-link ${menu.active ? 'active' : ''}`}>
+        {NAV_ITEMS.map((menu) => (
+          <Link
+            href={menu.path}
+            key={menu.name}
+            className={`sidebar-link ${isActivePath(menu.path, pathname) ? 'active' : ''}`}
+          >
             <span className="sidebar-icon"><Icon name={menu.icon} size={20} /></span>
             {menu.name}
           </Link>
