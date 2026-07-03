@@ -2,12 +2,14 @@
 
 import { useAuth } from '@/lib/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Icon from '@/components/Icon';
+import ForceGraph from '@/components/ForceGraph';
+import StickyBoard from '@/components/StickyBoard';
 import { ddayInfo, resolveStart } from '@/lib/scheduleUtils';
 
 // 옵시디언 그래프 뷰 스타일 홈: 기능(허브)과 내 데이터(업무·일정·예약)가
-// 노드로 연결된 그래프. 노드를 클릭하면 해당 페이지로 이동한다.
+// 노드로 연결된 그래프. 드래그로 배치하고, 클릭하면 해당 페이지로 이동한다.
 const HUBS = [
   { id: 'inbox', label: '업무함', link: '/inbox', color: '#A5C8ED' },
   { id: 'schedule', label: '일정', link: '/schedule', color: '#B5E3C4' },
@@ -75,10 +77,16 @@ export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [graph, setGraph] = useState(null);
-  const [hover, setHover] = useState(null);
   const [graphOpen, setGraphOpen] = useState(true);
 
   useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+  useEffect(() => {
+    setGraph(buildGraph());
     try { setGraphOpen(localStorage.getItem('home_graph_open') !== '0'); } catch (e) {}
   }, []);
 
@@ -89,52 +97,43 @@ export default function Home() {
     });
   }
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [user, loading, router]);
+  // ---------- 그래프 초기 배치 (물리 시뮬레이션 시작점) ----------
+  const W = 640, H = 480;
+  const { nodes, edges } = useMemo(() => {
+    const CX = W / 2, CY = H / 2, R1 = 140, R2 = 90;
+    const ns = [];
+    const es = [];
 
-  useEffect(() => {
-    setGraph(buildGraph());
-  }, []);
+    ns.push({ id: 'center', x: CX, y: CY, r: 30, label: '스쿨메이트 AI', color: '#B9D4F2', center: true });
+
+    HUBS.forEach((hub, i) => {
+      const angle = (i / HUBS.length) * Math.PI * 2 - Math.PI / 2;
+      const x = CX + R1 * Math.cos(angle);
+      const y = CY + R1 * Math.sin(angle);
+      ns.push({ id: hub.id, x, y, r: 20, label: hub.label, color: hub.color, link: hub.link });
+      es.push({ source: 'center', target: hub.id });
+
+      const children = graph ? (graph.leaves[hub.id] || []) : [];
+      children.forEach((leaf, j) => {
+        const spread = 0.55;
+        const childAngle = angle + (j - (children.length - 1) / 2) * spread;
+        const id = `${hub.id}_leaf_${j}`;
+        ns.push({
+          id, x: x + R2 * Math.cos(childAngle), y: y + R2 * Math.sin(childAngle), r: 10,
+          label: leaf.label, sub: leaf.sub, color: leaf.urgent ? '#F5B5B0' : hub.color,
+          link: hub.link, leaf: true,
+        });
+        es.push({ source: hub.id, target: id, faint: true });
+      });
+    });
+    return { nodes: ns, edges: es };
+  }, [graph]);
 
   if (loading || !user) {
     return <div style={{ textAlign: 'center', paddingTop: '100px' }}>로딩 중...</div>;
   }
 
   const userName = user?.displayName?.split(' ')[0] || '선생님';
-
-  // ---------- 그래프 좌표 계산 ----------
-  const W = 640, H = 480, CX = W / 2, CY = H / 2;
-  const R1 = 140, R2 = 90;
-  const nodes = [];
-  const edges = [];
-
-  nodes.push({ id: 'center', x: CX, y: CY, r: 34, label: '스쿨메이트 AI', color: '#B9D4F2', center: true });
-
-  HUBS.forEach((hub, i) => {
-    const angle = (i / HUBS.length) * Math.PI * 2 - Math.PI / 2;
-    const x = CX + R1 * Math.cos(angle);
-    const y = CY + R1 * Math.sin(angle);
-    nodes.push({ id: hub.id, x, y, r: 22, label: hub.label, color: hub.color, link: hub.link });
-    edges.push({ from: { x: CX, y: CY }, to: { x, y } });
-
-    const children = graph ? (graph.leaves[hub.id] || []) : [];
-    children.forEach((leaf, j) => {
-      const spread = 0.55;
-      const childAngle = angle + (j - (children.length - 1) / 2) * spread;
-      const lx = x + R2 * Math.cos(childAngle);
-      const ly = y + R2 * Math.sin(childAngle);
-      nodes.push({
-        id: `${hub.id}_leaf_${j}`, x: lx, y: ly, r: 11,
-        label: leaf.label, sub: leaf.sub, color: leaf.urgent ? '#F5B5B0' : hub.color,
-        link: hub.link, leaf: true,
-      });
-      edges.push({ from: { x, y }, to: { x: lx, y: ly }, faint: true });
-    });
-  });
-
   const summary = graph?.summary || { due: 0, schedules: 0, resv: 0 };
   const chips = [
     { icon: 'assignment_late', label: `마감 임박 업무 ${summary.due}건`, link: '/inbox', warn: summary.due > 0 },
@@ -147,7 +146,7 @@ export default function Home() {
       <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 className="text-display" style={{ margin: 0 }}>{userName}님, 안녕하세요!</h1>
-          <p className="text-caption" style={{ marginTop: 6 }}>내 업무와 도구가 연결된 그래프입니다. 노드를 클릭해 이동하세요.</p>
+          <p className="text-caption" style={{ marginTop: 6 }}>그래프의 노드를 끌어서 배치하고, 클릭해 이동하세요.</p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {chips.map(chip => (
@@ -167,81 +166,34 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ---------- 옵시디언 스타일 그래프 뷰 (접기/펴기 가능) ---------- */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden', background: 'white', width: 'min(520px, 100%)', margin: '0 auto' }}>
-        <button
-          onClick={toggleGraph}
-          aria-expanded={graphOpen}
-          style={{
-            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '12px 18px', background: 'none', border: 'none', borderBottom: graphOpen ? '1px solid var(--color-divider)' : 'none',
-            cursor: 'pointer', color: 'var(--color-ink)',
-          }}
-        >
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14 }}>
-            <Icon name="graph_3" size={18} style={{ color: 'var(--color-primary)' }} /> 내 연결 그래프
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, color: 'var(--color-muted-ink)' }}>
-            {graphOpen ? '접기' : '펼치기'}
-            <Icon name={graphOpen ? 'expand_less' : 'expand_more'} size={20} />
-          </span>
-        </button>
-        {graphOpen && (
-        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }}>
-          {edges.map((e, i) => (
-            <line
-              key={i}
-              x1={e.from.x} y1={e.from.y} x2={e.to.x} y2={e.to.y}
-              stroke="#9AA3AF" strokeWidth={e.faint ? 0.9 : 1.4} strokeOpacity={e.faint ? 0.35 : 0.5}
-            />
-          ))}
-          {nodes.map(node => {
-            const isHover = hover === node.id;
-            return (
-              <g
-                key={node.id}
-                onClick={() => node.link && router.push(node.link)}
-                onMouseEnter={() => setHover(node.id)}
-                onMouseLeave={() => setHover(null)}
-                style={{ cursor: node.link ? 'pointer' : 'default' }}
-              >
-                <circle
-                  cx={node.x} cy={node.y}
-                  r={isHover ? node.r * 1.2 : node.r}
-                  fill={node.color}
-                  fillOpacity={node.leaf ? 0.75 : 0.95}
-                  style={{ transition: 'r 0.15s', filter: isHover ? 'drop-shadow(0 4px 10px rgba(0,0,0,0.25))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.12))' }}
-                />
-                {node.center && (
-                  <circle cx={node.x} cy={node.y} r={node.r + 8} fill="none" stroke="#B9D4F2" strokeOpacity="0.5" strokeWidth="1.5" />
-                )}
-                <text
-                  x={node.x} y={node.y + node.r + (node.leaf ? 15 : 19)}
-                  textAnchor="middle"
-                  fill={isHover ? 'var(--color-primary)' : 'var(--color-ink)'}
-                  fontSize={node.center ? 16 : node.leaf ? 11.5 : 14}
-                  fontWeight={node.center ? 800 : node.leaf ? 500 : 700}
-                  style={{ userSelect: 'none' }}
-                >
-                  {node.label}
-                </text>
-                {node.sub && (
-                  <text x={node.x} y={node.y + node.r + 29} textAnchor="middle" fill="var(--color-muted-ink)" fontSize="10.5" style={{ userSelect: 'none' }}>
-                    {node.sub}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-        </svg>
-        )}
-      </div>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        {/* ---------- 옵시디언 스타일 그래프 뷰 (드래그 가능, 접기/펴기) ---------- */}
+        <div className="card" style={{ padding: 0, overflow: 'hidden', background: 'white', flex: '0 1 480px', minWidth: 320 }}>
+          <button
+            onClick={toggleGraph}
+            aria-expanded={graphOpen}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px 18px', background: 'none', border: 'none', borderBottom: graphOpen ? '1px solid var(--color-divider)' : 'none',
+              cursor: 'pointer', color: 'var(--color-ink)',
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14 }}>
+              <Icon name="graph_3" size={18} style={{ color: 'var(--color-primary)' }} /> 내 연결 그래프
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, color: 'var(--color-muted-ink)' }}>
+              {graphOpen ? '접기' : '펼치기'}
+              <Icon name={graphOpen ? 'expand_less' : 'expand_more'} size={20} />
+            </span>
+          </button>
+          {graphOpen && (
+            <ForceGraph nodes={nodes} edges={edges} width={W} height={H} onNavigate={(link) => router.push(link)} />
+          )}
+        </div>
 
-      {graphOpen && (
-        <p className="text-fine" style={{ marginTop: 10, textAlign: 'center' }}>
-          업무를 저장하거나 일정·예약을 만들면 그래프에 노드가 자라납니다 🌱
-        </p>
-      )}
+        {/* ---------- 포스트잇 메모 보드 ---------- */}
+        <StickyBoard style={{ flex: '1 1 340px', minWidth: 300, alignSelf: 'stretch' }} />
+      </div>
     </div>
   );
 }
