@@ -68,7 +68,8 @@ function buildGraph() {
     });
   } catch (e) {}
 
-  leaves.records = [{ label: 'CLASS PLAY HUB', sub: null, urgent: false }];
+  // 허브 파일을 새 창으로 직접 연다 (records 페이지를 거치지 않음)
+  leaves.records = [{ label: 'CLASS PLAY HUB', sub: '새 창', urgent: false, link: '/CLASS_PLAY_HUB_v1.3.html', external: true }];
 
   return { leaves, summary };
 }
@@ -121,7 +122,7 @@ export default function Home() {
         ns.push({
           id, x: x + R2 * Math.cos(childAngle), y: y + R2 * Math.sin(childAngle), r: 10,
           label: leaf.label, sub: leaf.sub, color: leaf.urgent ? '#F5B5B0' : hub.color,
-          link: hub.link, leaf: true,
+          link: leaf.link || hub.link, external: !!leaf.external, leaf: true,
         });
         es.push({ source: hub.id, target: id, faint: true });
       });
@@ -187,7 +188,13 @@ export default function Home() {
             </span>
           </button>
           {graphOpen && (
-            <ForceGraph nodes={nodes} edges={edges} width={W} height={H} onNavigate={(link) => router.push(link)} />
+            <ForceGraph
+              nodes={nodes} edges={edges} width={W} height={H}
+              onNavigate={(link, node) => {
+                if (node?.external) window.open(link, '_blank', 'noopener');
+                else router.push(link);
+              }}
+            />
           )}
         </div>
 

@@ -106,7 +106,7 @@ export default function ForceGraph({ nodes: initialNodes, edges: initialEdges, w
 
   function onPointerDown(node, e) {
     e.preventDefault();
-    e.currentTarget.setPointerCapture?.(e.pointerId);
+    try { e.currentTarget.setPointerCapture?.(e.pointerId); } catch (err) {}
     const p = toSvgPoint(e.clientX, e.clientY);
     dragRef.current = { node, offsetX: node.x - p.x, offsetY: node.y - p.y, moved: 0 };
     alphaRef.current = 0.6;
@@ -126,7 +126,7 @@ export default function ForceGraph({ nodes: initialNodes, edges: initialEdges, w
     const drag = dragRef.current;
     dragRef.current = null;
     alphaRef.current = 0.5;
-    if (drag && drag.moved < 6 && node.link) onNavigate?.(node.link);
+    if (drag && drag.moved < 6 && node.link) onNavigate?.(node.link, node);
   }
 
   return (
