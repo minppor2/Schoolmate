@@ -1,7 +1,7 @@
 # 스쿨메이트 AI
 
 교사 업무 자동화 플랫폼 — 창일중학교. Next.js(App Router) + Firebase로 만든 웹 앱입니다.
-
+*테스트 비번 : schoolmate2026!
 배포: https://schoolmate-q9jb.vercel.app
 
 ## 주요 기능
