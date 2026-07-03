@@ -42,7 +42,7 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 
 # 테스트 사용자 입장 비밀번호 (심사/체험용, 로그인 없이 입장)
-ADMIN_PASSWORD=
+ADMIN_PASSWORD=schoolmate2026!
 
 # AI 챗봇/업무 추출 — 둘 중 하나 이상 (Gemini 우선, 무료)
 GEMINI_API_KEY=   # https://aistudio.google.com/apikey (무료)
