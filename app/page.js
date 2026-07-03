@@ -9,11 +9,11 @@ import { ddayInfo, resolveStart } from '@/lib/scheduleUtils';
 // 옵시디언 그래프 뷰 스타일 홈: 기능(허브)과 내 데이터(업무·일정·예약)가
 // 노드로 연결된 그래프. 노드를 클릭하면 해당 페이지로 이동한다.
 const HUBS = [
-  { id: 'inbox', label: '업무함', link: '/inbox', color: '#0066CC' },
-  { id: 'schedule', label: '일정', link: '/schedule', color: '#34C759' },
-  { id: 'reservation', label: '특별실', link: '/reservation', color: '#FF9500' },
-  { id: 'records', label: '학생기록', link: '/records', color: '#AF52DE' },
-  { id: 'settings', label: '설정', link: '/settings', color: '#8E8E93' },
+  { id: 'inbox', label: '업무함', link: '/inbox', color: '#A5C8ED' },
+  { id: 'schedule', label: '일정', link: '/schedule', color: '#B5E3C4' },
+  { id: 'reservation', label: '특별실', link: '/reservation', color: '#FFD9A8' },
+  { id: 'records', label: '학생기록', link: '/records', color: '#DCC5EA' },
+  { id: 'settings', label: '설정', link: '/settings', color: '#D3D7DC' },
 ];
 
 const trunc = (s, n = 9) => (s.length > n ? s.slice(0, n) + '…' : s);
@@ -30,14 +30,21 @@ function buildGraph() {
   const summary = { due: 0, schedules: 0, resv: 0 };
 
   try {
-    const tasks = JSON.parse(localStorage.getItem('inbox_tasks') || '[]').filter(t => t.status === 'saved' && !t.done);
-    tasks.forEach(t => {
+    const all = JSON.parse(localStorage.getItem('inbox_tasks') || '[]');
+    const savedTasks = all.filter(t => t.status === 'saved' && !t.done);
+    const candidates = all.filter(t => t.status === 'candidate');
+    savedTasks.forEach(t => {
       const info = ddayInfo(t);
       if (info && (info.overdue || info.today || parseInt(info.label.replace('D-', ''), 10) <= 3)) summary.due += 1;
     });
-    leaves.inbox = tasks.slice(0, 3).map(t => {
+    // 저장한 업무 우선, 자리가 남으면 업무 후보도 표시
+    leaves.inbox = [...savedTasks, ...candidates].slice(0, 4).map(t => {
       const info = ddayInfo(t);
-      return { label: trunc(t.title), sub: info ? info.label : null, urgent: info ? (info.overdue || info.today) : false };
+      return {
+        label: trunc(t.title),
+        sub: t.status === 'candidate' ? '후보' : (info ? info.label : null),
+        urgent: t.status === 'saved' && !!info && (info.overdue || info.today),
+      };
     });
   } catch (e) {}
 
@@ -99,12 +106,12 @@ export default function Home() {
   const userName = user?.displayName?.split(' ')[0] || '선생님';
 
   // ---------- 그래프 좌표 계산 ----------
-  const W = 860, H = 540, CX = W / 2, CY = H / 2;
-  const R1 = 165, R2 = 100;
+  const W = 640, H = 480, CX = W / 2, CY = H / 2;
+  const R1 = 140, R2 = 90;
   const nodes = [];
   const edges = [];
 
-  nodes.push({ id: 'center', x: CX, y: CY, r: 34, label: '스쿨메이트 AI', color: '#0066CC', center: true });
+  nodes.push({ id: 'center', x: CX, y: CY, r: 34, label: '스쿨메이트 AI', color: '#B9D4F2', center: true });
 
   HUBS.forEach((hub, i) => {
     const angle = (i / HUBS.length) * Math.PI * 2 - Math.PI / 2;
@@ -121,7 +128,7 @@ export default function Home() {
       const ly = y + R2 * Math.sin(childAngle);
       nodes.push({
         id: `${hub.id}_leaf_${j}`, x: lx, y: ly, r: 11,
-        label: leaf.label, sub: leaf.sub, color: leaf.urgent ? '#FF3B30' : hub.color,
+        label: leaf.label, sub: leaf.sub, color: leaf.urgent ? '#F5B5B0' : hub.color,
         link: hub.link, leaf: true,
       });
       edges.push({ from: { x, y }, to: { x: lx, y: ly }, faint: true });
@@ -161,7 +168,7 @@ export default function Home() {
       </div>
 
       {/* ---------- 옵시디언 스타일 그래프 뷰 (접기/펴기 가능) ---------- */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden', background: 'white' }}>
+      <div className="card" style={{ padding: 0, overflow: 'hidden', background: 'white', width: 'min(520px, 100%)', margin: '0 auto' }}>
         <button
           onClick={toggleGraph}
           aria-expanded={graphOpen}
@@ -180,7 +187,7 @@ export default function Home() {
           </span>
         </button>
         {graphOpen && (
-        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', maxWidth: 640, maxHeight: 400, display: 'block', margin: '0 auto' }}>
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }}>
           {edges.map((e, i) => (
             <line
               key={i}
@@ -206,20 +213,20 @@ export default function Home() {
                   style={{ transition: 'r 0.15s', filter: isHover ? 'drop-shadow(0 4px 10px rgba(0,0,0,0.25))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.12))' }}
                 />
                 {node.center && (
-                  <circle cx={node.x} cy={node.y} r={node.r + 8} fill="none" stroke="#0066CC" strokeOpacity="0.25" strokeWidth="1.5" />
+                  <circle cx={node.x} cy={node.y} r={node.r + 8} fill="none" stroke="#B9D4F2" strokeOpacity="0.5" strokeWidth="1.5" />
                 )}
                 <text
-                  x={node.x} y={node.y + node.r + (node.leaf ? 14 : 18)}
+                  x={node.x} y={node.y + node.r + (node.leaf ? 15 : 19)}
                   textAnchor="middle"
                   fill={isHover ? 'var(--color-primary)' : 'var(--color-ink)'}
-                  fontSize={node.center ? 15 : node.leaf ? 10.5 : 13}
+                  fontSize={node.center ? 16 : node.leaf ? 11.5 : 14}
                   fontWeight={node.center ? 800 : node.leaf ? 500 : 700}
                   style={{ userSelect: 'none' }}
                 >
                   {node.label}
                 </text>
                 {node.sub && (
-                  <text x={node.x} y={node.y + node.r + 27} textAnchor="middle" fill="var(--color-muted-ink)" fontSize="9.5" style={{ userSelect: 'none' }}>
+                  <text x={node.x} y={node.y + node.r + 29} textAnchor="middle" fill="var(--color-muted-ink)" fontSize="10.5" style={{ userSelect: 'none' }}>
                     {node.sub}
                   </text>
                 )}
